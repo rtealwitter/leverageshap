@@ -163,7 +163,8 @@ def plot_sampled_sizes(n, m, folder=None):
     plt.title('Sampled Subset Sizes')
     plt.xlabel('Subset Size')
     plt.ylabel('Frequency')
-    filename = f'{folder}sampled_sizes_{n}_{m}.pdf'
-    plt.savefig(filename, dpi=1000, bbox_inches='tight')
+    for ending in ['png', 'pdf']:
+        filename = f'{folder}sampled_sizes_{n}_{m}.{ending}'
+        plt.savefig(filename, dpi=1000, bbox_inches='tight')
     plt.close()
 

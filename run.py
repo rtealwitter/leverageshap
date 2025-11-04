@@ -36,13 +36,15 @@ for y_name in ['shap_error', 'weighted_error']:
     x_name = 'sample_size'
     constraints = {'noise': 0}
     results = ls.load_results(small_n + big_n, x_name, y_name, constraints)
-    ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}.pdf', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
+    for ending in ['png', 'pdf']:
+        ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}.{ending}', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
 
     # Performance by noise level
     x_name = 'noise'
     constraints = {'sample_size': 10}
     results = ls.load_results(small_n + big_n, x_name, y_name, constraints)
-    ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}.pdf', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
+    for ending in ['png', 'pdf']:
+        ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}.{ending}', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
 
 # Tables
 for y_name in ['shap_error', 'weighted_error']:
