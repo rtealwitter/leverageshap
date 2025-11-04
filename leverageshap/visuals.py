@@ -1,14 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.special
-import scienceplots
 
 from .estimators import estimators
 from .benchmark import get_dataset_size
 
-linestyles = ['dotted', 'dashed', 'solid', 'dashdot', (5,(10,3)), (0,(1,1)), (0,(5,10)),(0,(5,1)), (0,(3,10,1,10)), (0,(3,5,1,5)), (0,(3,1,1,1)), (0,(3,5,1,5,1,5)), (0,(3,10,1,10,1,10)), (0,(3,1,1,1,1,1))]
+linestyles = ['dashed', 'dotted', 'solid', 'dashdot', (5,(10,3)), (0,(1,1)), (0,(5,10)),(0,(5,1)), (0,(3,10,1,10)), (0,(3,5,1,5)), (0,(3,1,1,1)), (0,(3,5,1,5,1,5)), (0,(3,10,1,10,1,10)), (0,(3,1,1,1,1,1))]
 
-cbcolors = ['#88CCEE', '#332288', '#117733', '#CC6677', '#44AA99', '#AA4499', '#882255', '#AA4499', '#661100', '#6699CC', '#AA4466', '#4477AA']
+cbcolors = ['#661100', '#332288', '#117733', '#CC6677', '#44AA99', '#AA4499', '#882255', '#AA4499','#88CCEE', '#6699CC', '#AA4466', '#4477AA']
 
 linestyles_lookup = {name: linestyles[i % len(linestyles)] for i, name in enumerate(estimators.keys())}
 
@@ -57,7 +55,7 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
             else:
                 ax.plot(x_values, y_median, label=estimator_name, linestyle=linestyles_lookup[estimator_name], color=cbcolors_lookup[estimator_name])
                 ax.fill_between(x_values, y_lower, y_upper, alpha=0.2, color=cbcolors_lookup[estimator_name])
-        if len(to_multiply) > 0: 
+        if False:#len(to_multiply) > 0: 
             print(dataset)
             ratio = (to_multiply['Leverage SHAP'] / to_multiply['Optimized Kernel SHAP'])
             for val in ratio:
