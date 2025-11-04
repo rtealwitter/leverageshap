@@ -12,7 +12,7 @@ Like Kernel SHAP, Leverage SHAP approximates Shapley values by solving a weighte
 
 3. Leverage SHAP directly **samples coalitions without replacement**, while Kernel SHAP uses rejection sampling  and up-weights the coalitions that happen to be selected multiple times.
 
-![Performance of Leverage SHAP](images/main_sample_size-shap_error.pdf)
+![Performance of Leverage SHAP](images/main_sample_size-shap_error.png)
 
 ### Small Example
 
