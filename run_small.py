@@ -2,9 +2,9 @@ import xgboost as xgb
 import leverageshap as ls
 import numpy as np
 
-dataset = 'California'
+dataset = 'Adult'
 reps = 10
-size_mults = [.5, 1, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10]
+size_mults = [4, 8, 16, 32]
 
 X, y = ls.load_dataset(dataset)
 n = X.shape[1]
@@ -12,8 +12,8 @@ n = X.shape[1]
 sample_sizes = [int(n * mult) for mult in size_mults]
 
 estimator_names = [
-    'Optimized Kernel SHAP',
-    'Leverage SHAP'
+    'Leverage SHAP',
+    'New SHAP',
 ]
 
 mse_by_estimator_and_sample_size = {
@@ -26,7 +26,7 @@ for i in range(reps):
 
     baseline, explicand = ls.load_input(X, seed=i)
 
-    true_shap = ls.estimators['Official Tree SHAP'](baseline, explicand, model, None).flatten()
+    true_shap = ls.estimators['Tree SHAP'](baseline, explicand, model, None).flatten()
 
     for estimator_name in estimator_names:
         estimator = ls.estimators[estimator_name]
