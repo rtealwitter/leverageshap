@@ -35,7 +35,7 @@ class LeverageSHAP:
         coalition_sizes = coalition_sizes[filtered_indices]
         sampling_probs = sampling_probs[filtered_indices]
 
-        values = self.game.value(coalition_matrix)
+        values = self.game(coalition_matrix)
         
         v0, v1 = self.game.edge_cases()
         values_adjusted = values - (v1 - v0) * coalition_sizes/ self.n

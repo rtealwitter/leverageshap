@@ -2,10 +2,58 @@ import numpy as np
 from .sampling import CoalitionSampler
 from .helpers import Game
 from scipy.special import comb as binom
+from shapiq.game import Game as ShapiqGame
 
 # Helpers
 
 from typing import Iterable, List, Sequence, Tuple, Optional
+
+import shapiq
+from sparse_transform.qsft.utils.query import get_bch_decoder
+from itertools import chain, combinations
+
+def powerset(iterable):
+    s = tuple(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+def mobius_to_fourier(mobius_dict):
+    """
+    Convert Möbius coefficients to Fourier coefficients.
+    """
+    if not mobius_dict:
+        return {}
+
+    unscaled_fourier_dict = {}
+    for loc, coef in mobius_dict.items():
+        real_coef = np.real(coef) / (2 ** len(loc))   # cardinality, not sum of indices
+        for subset in powerset(loc):
+            unscaled_fourier_dict[subset] = unscaled_fourier_dict.get(subset, 0.0) + real_coef
+
+    # multiply each entry by (-1)^(|loc|)
+    return {
+        loc: val * ((-1.0) ** len(loc))
+        for loc, val in unscaled_fourier_dict.items()
+        if abs(val) > 1e-12
+    }
+
+def top_fourier_interactions(game, n, t, b):
+    spex_approximator = shapiq.SPEX(n=n, index="FSII", max_order = n)
+    spex_approximator.degree_parameter = t
+    spex_approximator.query_args["t"] = t
+    spex_approximator.decoder_args["source_decoder"] = get_bch_decoder(n, t, "soft")
+
+    budget = int(3 * np.log2(n) * 2**b * t)
+    print(f'Budget for SPEX: {budget}')
+    mobius_inters = spex_approximator.approximate(game=game, budget=budget).dict_values
+    fourier_inters = mobius_to_fourier(mobius_inters)
+    fourier_inters_useful = {}
+    for loc, coef in fourier_inters.items():
+        if len(loc) >= 2 and len(loc) % 2 == 1:
+            fourier_inters_useful[loc] = coef
+    # Sort by absolute value
+    fourier_inters_useful = dict(sorted(fourier_inters_useful.items(), key=lambda item: abs(item[1]), reverse=True))
+    print(f'Found {len(fourier_inters_useful)} Fourier interactions: {fourier_inters_useful}.')
+    return list(fourier_inters.keys())
 
 def shapley_from_fourier(
     interactions: Sequence[Iterable[int]],
@@ -18,7 +66,7 @@ def shapley_from_fourier(
             continue
         for i in S:
             shapley_values[i] += coeff / len(S)
-    return shapley_values #* -2
+    return shapley_values * -2
 
 def interactions_to_matrix(interactions: Sequence[Iterable[int]], n: int) -> np.ndarray:
     """
@@ -58,8 +106,14 @@ class NewSHAP:
     def shap_values(self, num_samples):
         # Solve argmin_{x: <x,1>=v1-v0} (Ax - b)^T W (Ax - b)
         if num_samples < 6:
-            print('Number of samples too small, setting to 6')
-            num_samples = 6
+            print('Number of samples too small, setting to 4.')
+            num_samples = 4
+
+        fourier_inters = top_fourier_interactions(self.game, self.n, t=3, b=6)
+        interactions = [(i,) for i in range(self.n)]
+        for inter in fourier_inters:
+            if len(inter) >= 2 and len(inter) % 2 == 1:
+                interactions += [inter]
 
         sampling_weights = np.ones(self.n)
 
@@ -68,36 +122,36 @@ class NewSHAP:
         coalition_matrix = sampler.coalitions_matrix
         coalition_sizes = np.sum(coalition_matrix, axis=1)
         sampling_probs = sampler.sampling_probabilities
+        values = self.game(coalition_matrix)
+        v0, v1 = values[np.where(coalition_sizes == 0)[0][0]], values[np.where(coalition_sizes == self.n)[0][0]]
 
         # Filter out empty and full coalitions
         filtered_indices = np.where((coalition_sizes > 0) & (coalition_sizes < self.n))[0]
         coalition_matrix = coalition_matrix[filtered_indices]
         coalition_sizes = coalition_sizes[filtered_indices]
         sampling_probs = sampling_probs[filtered_indices]
+        values = values[filtered_indices]
 
-        values = self.game.value(coalition_matrix)
-        v0, v1 = self.game.edge_cases()
-
-        # Convert to Fourier
-        interactions = [(i,) for i in range(self.n)]
-#        interactions += [(i, j, k) for i in range(self.n) for j in range(i+1, self.n) for k in range(j+1, self.n)]
 
         coalition_matrix = fourier_design_matrix(coalition_matrix, interactions=interactions)
-        values = - 2 * values + (v1 - v0)
+
+        dim = coalition_matrix.shape[1]
+        constant = (v1 - v0) / dim
+        constant *= -1/2
 
         row_sum = np.sum(coalition_matrix, axis=1)
 
-        values_adjusted = values - (v1 - v0) * row_sum/ self.n
+        values_adjusted = values - constant * row_sum
         regression_weights = 1 / (binom(self.n, coalition_sizes) * coalition_sizes * (self.n - coalition_sizes))
         kernel_weights = regression_weights / sampling_probs
 
-        dim = coalition_matrix.shape[1]
+        
         P = np.eye(dim) - 1/dim
 
         Atb = P @ coalition_matrix.T @ np.diag(kernel_weights) @ values_adjusted
         AtA = P @ coalition_matrix.T @ np.diag(kernel_weights) @ coalition_matrix @ P
 
-        if np.linalg.cond(AtA) > 1 / np.finfo(AtA.dtype).eps and num_samples <= 3*self.n:
+        if np.linalg.cond(AtA) > 1 / np.finfo(AtA.dtype).eps and coalition_matrix.shape[0] <= 5*coalition_matrix.shape[1]:
             sqrt_alpha = 1e-3
             AtA = AtA + sqrt_alpha * np.eye(AtA.shape[0])
 
@@ -107,10 +161,15 @@ class NewSHAP:
 
         AtA_inv_Atb = np.linalg.lstsq(AtA, Atb, rcond=None)[0]
         
-        coeffs = AtA_inv_Atb + (v1 - v0) / self.n
+        coeffs = AtA_inv_Atb + constant
         #return coeffs
 
         shap_values = shapley_from_fourier(interactions=interactions, coeffs=coeffs, n=self.n)
+        # Print shapley values by absolute value
+#        print('SHAP values:')
+#        for i, val in sorted(enumerate(shap_values), key=lambda item: abs(item[1]), reverse=True):
+#            print(f'Feature {i}: {val:.6f}', end=', ')
+#        print()
 
         return shap_values
 

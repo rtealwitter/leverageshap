@@ -4,7 +4,7 @@ class Game:
         self.baseline = baseline
         self.explicand = explicand
     
-    def value(self, S):
+    def __call__(self, S):
         # S is a m by n binary matrix
         inputs = self.baseline * (1 - S) + self.explicand * S
         return self.model.predict(inputs)
@@ -13,3 +13,4 @@ class Game:
         v0 = self.model.predict(self.baseline)
         v1 = self.model.predict(self.explicand)
         return v0, v1
+    
