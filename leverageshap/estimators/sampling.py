@@ -1,6 +1,5 @@
 import numpy as np
 import math
-import itertools
 from scipy.special import comb as binom
 from typing import Sequence, Tuple, TypeVar
 
@@ -97,7 +96,19 @@ class CoalitionSampler:
         random_state: int | None = None,
     ) -> None:
         self.n_players = n_players
+
+        if len(sampling_weights) == n_players + 1:
+            sampling_weights = sampling_weights[1:-1]
+            print(f'Warning: sampling_weights should be of length n_players-1, ignoring first and last entries.')
+        elif len(sampling_weights) == n_players:
+            sampling_weights = sampling_weights[1:]
+            print(f'Warning: sampling_weights should be of length n_players-1, ignoring first entry.')
+        elif len(sampling_weights) != n_players - 1:
+            raise ValueError(f"sampling_weights should be of length n_players-1, but got length {len(sampling_weights)}.")
         self.distribution = sampling_weights / np.min(sampling_weights)
+        # Insert 0 for empty coalition size and full coalition size
+        self.distribution = np.concatenate(([0.0], self.distribution, [0.0]))
+
         # Ensure smallest weight is 1
         self.pairing_trick = pairing_trick
         self.rng = np.random.default_rng(seed=random_state)

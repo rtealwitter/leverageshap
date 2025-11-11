@@ -10,19 +10,24 @@ def get_hyperparameter_values(name):
     if name == 'noise_std':
         return [.5 * 1e-3, 1e-3, .5 * 1e-2, 1e-2, .5 * 1e-1, 1e-1, .5, 1]
     elif name == 'sample_size':
-        return [.25, .5, 1, 2, 4, 8, 16, 32, 64, 128, 256]
+        return [.25, .5, 1, 2, 4, 8, 16, 32, 64, 128]
     else:
         raise ValueError(f'Unknown hyperparameter {name}')
 
-main_estimators = ['Permutation SHAP', 'Kernel SHAP', 'Leverage SHAP', 'New SHAP']
+main_estimators = [
+    'Permutation SHAP', 
+    #'Kernel SHAP',
+    'Leverage SHAP',
+    'New SHAP'
+]
 
 datasets = small_n + big_n
 
-if True:
+if False:
     main_estimators = {
         name: ls.estimators[name] for name in main_estimators
     }
-    num_runs = 100
+    num_runs = 10
     for dataset in small_n + big_n:
         print(dataset)
         for hyperparameter in ['sample_size', 'noise_std']:
