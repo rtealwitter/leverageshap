@@ -12,7 +12,7 @@ n = X.shape[1]
 sample_sizes = [int(n * mult) for mult in size_mults]
 
 estimator_names = [
-    'Optimized Kernel SHAP',
+    'Kernel SHAP',
     'Leverage SHAP'
 ]
 
@@ -26,7 +26,7 @@ for i in range(reps):
 
     baseline, explicand = ls.load_input(X, seed=i)
 
-    true_shap = ls.estimators['Official Tree SHAP'](baseline, explicand, model, None).flatten()
+    true_shap = ls.estimators['Tree SHAP'](baseline, explicand, model, None).flatten()
 
     for estimator_name in estimator_names:
         estimator = ls.estimators[estimator_name]
