@@ -36,8 +36,8 @@ def mobius_to_fourier(mobius_dict):
         if abs(val) > 1e-12
     }
 
-def top_fourier_interactions(game, n, t, b):
-    spex_approximator = shapiq.SPEX(n=n, index="FSII", max_order = n)
+def spex_top_fourier(game, n, t, b):
+    spex_approximator = shapiq.SPEX(n=n, index="FSII", max_order = 3)
     spex_approximator.degree_parameter = t
     spex_approximator.query_args["t"] = t
     spex_approximator.decoder_args["source_decoder"] = get_bch_decoder(n, t, "soft")
@@ -98,42 +98,25 @@ def fourier_design_matrix(coalition_matrix: np.ndarray,
 
 
 class NewSHAP:
-    def __init__(self, n, game, paired_sampling=True):
+    def __init__(self, n, game, interaction_strategy, paired_sampling=True):
         self.game = game
         self.n = n
+        assert interaction_strategy in ['SPEX', 'ProxySPEX', 'Guess']
+        self.interaction_strategy = interaction_strategy
         self.paired_sampling = paired_sampling
     
-    def shap_values(self, num_samples):
+    def setupandsolve(self, interactions, sampled_coalitions, values, sampling_probs):
         # Solve argmin_{x: <x,1>=v1-v0} (Ax - b)^T W (Ax - b)
-        if num_samples < 6:
-            print('Number of samples too small, setting to 4.')
-            num_samples = 4
-
-        fourier_inters = top_fourier_interactions(self.game, self.n, t=3, b=6)
-        interactions = [(i,) for i in range(self.n)]
-        for inter in fourier_inters:
-            if len(inter) >= 2 and len(inter) % 2 == 1:
-                interactions += [inter]
-
-        sampling_weights = np.ones(self.n)
-
-        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling)
-        sampler.sample(num_samples)
-        coalition_matrix = sampler.coalitions_matrix
-        coalition_sizes = np.sum(coalition_matrix, axis=1)
-        sampling_probs = sampler.sampling_probabilities
-        values = self.game(coalition_matrix)
+        coalition_sizes = np.sum(sampled_coalitions, axis=1)
         v0, v1 = values[np.where(coalition_sizes == 0)[0][0]], values[np.where(coalition_sizes == self.n)[0][0]]
-
         # Filter out empty and full coalitions
         filtered_indices = np.where((coalition_sizes > 0) & (coalition_sizes < self.n))[0]
-        coalition_matrix = coalition_matrix[filtered_indices]
+        sampled_coalitions = sampled_coalitions[filtered_indices]
         coalition_sizes = coalition_sizes[filtered_indices]
         sampling_probs = sampling_probs[filtered_indices]
         values = values[filtered_indices]
 
-
-        coalition_matrix = fourier_design_matrix(coalition_matrix, interactions=interactions)
+        coalition_matrix = fourier_design_matrix(sampled_coalitions, interactions=interactions)
 
         dim = coalition_matrix.shape[1]
         constant = (v1 - v0) / dim
@@ -157,24 +140,43 @@ class NewSHAP:
 
             yellow_start="\033[33m"
             yellow_end="\033[0m"
-            print(f'{yellow_start}Warning:{yellow_end} Singular matrix in Leverage SHAP with num_samples={num_samples} and num_players={self.n}, adding ridge regularization with alpha={sqrt_alpha**2}.')
+            print(f'{yellow_start}Warning:{yellow_end} Singular matrix in Leverage SHAP with num_samples={sampled_coalitions.shape[0]} and num_players={self.n}, adding ridge regularization with alpha={sqrt_alpha**2}.')
 
         AtA_inv_Atb = np.linalg.lstsq(AtA, Atb, rcond=None)[0]
         
         coeffs = AtA_inv_Atb + constant
-        #return coeffs
 
         shap_values = shapley_from_fourier(interactions=interactions, coeffs=coeffs, n=self.n)
-        # Print shapley values by absolute value
-#        print('SHAP values:')
-#        for i, val in sorted(enumerate(shap_values), key=lambda item: abs(item[1]), reverse=True):
-#            print(f'Feature {i}: {val:.6f}', end=', ')
-#        print()
+
+        return shap_values
+    
+    def shap_values(self, num_samples):
+        if num_samples < 6:
+            print('Number of samples too small, setting to 4.')
+            num_samples = 4
+
+        interactions = [(i,) for i in range(self.n)]
+
+        if self.interaction_strategy == 'SPEX':
+            fourier_inters = spex_top_fourier(self.game, self.n, t=3, b=6)  
+            for inter in fourier_inters:
+                if len(inter) >= 2 and len(inter) % 2 == 1:
+                    interactions += [inter]
+
+        sampling_weights = np.ones(self.n)
+
+        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling)
+        sampler.sample(num_samples)
+        sampled_coalitions = sampler.coalitions_matrix
+        sampling_probs = sampler.sampling_probabilities
+        values = self.game(sampled_coalitions)
+
+        shap_values = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
 
         return shap_values
 
 def new_shap(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
-    estimator = NewSHAP(n, game, paired_sampling=True)
+    estimator = NewSHAP(n, game, interaction_strategy='SPEX', paired_sampling=True)
     return estimator.shap_values(num_samples)

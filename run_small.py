@@ -3,8 +3,8 @@ import leverageshap as ls
 import numpy as np
 
 dataset = 'NHANES'
-reps = 10
-size_mults = [4, 8, 16, 32, 64, 128 ]
+reps = 3
+size_mults = [4, 8, 16, 32]#, 64, 128 ]
 
 X, y = ls.load_dataset(dataset)
 n = X.shape[1]
