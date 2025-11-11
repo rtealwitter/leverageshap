@@ -21,7 +21,7 @@ class LeverageSHAP:
             print('Number of samples too small, setting to 6')
             num_samples = 6
 
-        sampling_weights = np.ones(self.n)
+        sampling_weights = np.ones(self.n-1)
 
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling)
         sampler.sample(num_samples)
