@@ -2,7 +2,7 @@ import xgboost as xgb
 import leverageshap as ls
 import numpy as np
 
-dataset = 'NHANES'
+dataset = 'Adult'
 reps = 3
 size_mults = [4, 8, 16, 32, 64, 128]
 
