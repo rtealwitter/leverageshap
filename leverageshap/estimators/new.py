@@ -37,7 +37,7 @@ def mobius_to_fourier(mobius_dict):
     }
 
 def spex_top_fourier(game, n, spex_params):
-    spex_approximator = shapiq.SPEX(n=n, index="FSII", max_order = 3, top_order=True)
+    spex_approximator = shapiq.SPEX(n=n, index="FSII", max_order = n, top_order=True)
     spex_approximator.degree_parameter = spex_params['t']
     spex_approximator.query_args["t"] = spex_params['t']
     spex_approximator.decoder_args["source_decoder"] = get_bch_decoder(n, spex_params['t'], "soft")
@@ -160,6 +160,17 @@ class NewSHAP:
         if num_samples < 6:
             print('Number of samples too small, setting to 4.')
             num_samples = 4
+
+        if self.interaction_strategy == 'SPEX':
+            spex_params = get_spex_params(self.n, num_samples)
+            try:
+                new_interactions = spex_top_fourier(
+                    self.game, self.n, spex_params
+                )  
+                print('Using spex with m=', num_samples)
+                num_samples -= spex_params['budget']
+            except Exception as e:
+                new_interactions = []
             
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=np.ones(self.n-1), pairing_trick=self.paired_sampling)
         sampler.sample(num_samples)
@@ -169,15 +180,6 @@ class NewSHAP:
 
         interactions = [(i,) for i in range(self.n)]
 
-        if self.interaction_strategy == 'SPEX':
-            spex_params = get_spex_params(self.n, num_samples)
-            try:
-                new_interactions = spex_top_fourier(
-                    self.game, self.n, spex_params
-                )  
-                num_samples -= spex_params['budget']
-            except Exception as e:
-                self.interaction_strategy = 'Deterministic'
         if self.interaction_strategy == 'Proxy SPEX':
             new_interactions = proxy_spex_top_fourier(self.game, self.n, budget=3000)
         if self.interaction_strategy == 'Sample':
@@ -194,6 +196,7 @@ class NewSHAP:
         if self.interaction_strategy == 'None':
             new_interactions = []
         if self.interaction_strategy == 'Deterministic':
+            print('Using deterministic with m=', num_samples)
             new_interactions = []
             shap_values_guess = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
             sorted_indices = np.argsort(-np.abs(shap_values_guess))
@@ -210,7 +213,7 @@ class NewSHAP:
                         if idx < jdx < kdx:
                             new_interactions.append((idx, jdx, kdx))
         new_interactions = [inter for inter in new_interactions if len(inter) >= 2 and len(inter) % 2 == 1]
-        print(self.interaction_strategy, 'with', len(new_interactions), 'new interactions.') 
+        print(self.interaction_strategy, 'with', len(new_interactions), 'new interactions:', new_interactions) 
         interactions += new_interactions
 
         shap_values = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
@@ -220,5 +223,5 @@ class NewSHAP:
 def new_shap(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='SPEX', paired_sampling=True)
+    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True)
     return estimator.shap_values(num_samples)
