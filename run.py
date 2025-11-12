@@ -27,7 +27,7 @@ if True:
     main_estimators = {
         name: ls.estimators[name] for name in main_estimators
     }
-    num_runs = 100
+    num_runs = 10
     for dataset in small_n + big_n:
         print(dataset)
         for hyperparameter in ['sample_size']:#, 'noise_std']:

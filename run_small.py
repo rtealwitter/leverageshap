@@ -2,9 +2,9 @@ import xgboost as xgb
 import leverageshap as ls
 import numpy as np
 
-dataset = 'Adult'
+dataset = 'NHANES'
 reps = 3
-size_mults = [4, 8, 16, 32, 64, 128]
+size_mults = [1, 2, 4, 8, 16, 32, 64]
 
 X, y = ls.load_dataset(dataset)
 n = X.shape[1]
