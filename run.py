@@ -10,7 +10,7 @@ def get_hyperparameter_values(name):
     if name == 'noise_std':
         return [.5 * 1e-3, 1e-3, .5 * 1e-2, 1e-2, .5 * 1e-1, 1e-1, .5, 1]
     elif name == 'sample_size':
-        return [.25, .5, 1, 2, 4, 8, 16, 32, 64, 128]
+        return [.25, .5, 1, 2, 4, 8, 16, 32, 64, 128, 256]
     else:
         raise ValueError(f'Unknown hyperparameter {name}')
 
@@ -23,14 +23,14 @@ main_estimators = [
 
 datasets = small_n + big_n
 
-if False:
+if True:
     main_estimators = {
         name: ls.estimators[name] for name in main_estimators
     }
-    num_runs = 10
+    num_runs = 100
     for dataset in small_n + big_n:
         print(dataset)
-        for hyperparameter in ['sample_size', 'noise_std']:
+        for hyperparameter in ['sample_size']:#, 'noise_std']:
             print(hyperparameter)
             ls.benchmark(num_runs, dataset, main_estimators, hyperparameter, get_hyperparameter_values(hyperparameter), silent=False)
 
