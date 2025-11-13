@@ -3,6 +3,7 @@ from .sampling import CoalitionSampler
 from .helpers import Game
 from scipy.special import comb as binom
 import time
+from .proxyspex import proxyspex
 
 # Helpers
 
@@ -49,11 +50,19 @@ def spex_top_fourier(game, n, spex_params):
 
     return list(fourier_inters.keys())
 
-def proxy_spex_top_fourier(game, n, budget):
-    proxyspex_approximator = shapiq.ProxySPEX(n=n, index="FSII", max_order = n)
-    mobius_inters = proxyspex_approximator.approximate(game=game, budget=budget).dict_values
-    fourier_inters = mobius_to_fourier(mobius_inters)
-    return list(fourier_inters.keys())
+def proxy_spex_top_fourier(game, n, top_k, budget):
+    # proxyspex_approximator = shapiq.ProxySPEX(n=n, index="FSII", max_order=n)
+    # mobius_inters = proxyspex_approximator.approximate(game=game, budget=budget).dict_values
+    # print(mobius_inters)
+    # # print out the value counts of the key lengths of mobius_inters
+    # length_counts = {}
+    # for key in mobius_inters.keys():
+    #     length = len(key)
+    #     length_counts[length] = length_counts.get(length, 0) + 1
+    # print("Length counts of mobius_inters:", length_counts)
+    # fourier_inters = mobius_to_fourier(mobius_inters)
+    # return list(fourier_inters.keys())
+    return proxyspex(game, budget, n, top_k=top_k).keys()
 
 def shapley_from_fourier(
     interactions: Sequence[Iterable[int]],
@@ -105,12 +114,15 @@ def get_spex_params(n, m):
     return {'t': t, 'b': b, 'budget': int(2 * C * t * np.log2(n) * 2**b), 'C': C}
 
 class NewSHAP:
-    def __init__(self, n, game, interaction_strategy, paired_sampling=True):
+    def __init__(self, n, game, interaction_strategy, paired_sampling=True, top_k=None):
         self.game = game
         self.n = n
         self.interaction_strategy = interaction_strategy
         self.paired_sampling = paired_sampling
-    
+        if interaction_strategy == 'Proxy SPEX':
+            assert top_k is not None, "top_k must be specified for Proxy SPEX"
+        self.top_k = top_k
+
     def setupandsolve(self, interactions, sampled_coalitions, values, sampling_probs):
         # Solve argmin_{x: <x,1>=v1-v0} (Ax - b)^T W (Ax - b)
         coalition_sizes = np.sum(sampled_coalitions, axis=1)
@@ -171,7 +183,11 @@ class NewSHAP:
                 num_samples -= spex_params['budget']
             except Exception as e:
                 new_interactions = []
-            
+        if self.interaction_strategy == 'Proxy SPEX':
+            proxyspex_budget = num_samples // 2
+            new_interactions = proxy_spex_top_fourier(self.game, self.n, self.top_k, budget=proxyspex_budget)
+            num_samples -= proxyspex_budget
+
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=np.ones(self.n-1), pairing_trick=self.paired_sampling)
         sampler.sample(num_samples)
         sampled_coalitions = sampler.coalitions_matrix
@@ -180,8 +196,6 @@ class NewSHAP:
 
         interactions = [(i,) for i in range(self.n)]
 
-        if self.interaction_strategy == 'Proxy SPEX':
-            new_interactions = proxy_spex_top_fourier(self.game, self.n, budget=3000)
         if self.interaction_strategy == 'Sample':
             shap_values_guess = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
             dist = np.abs(shap_values_guess) / np.sum(np.abs(shap_values_guess))
@@ -215,13 +229,35 @@ class NewSHAP:
         new_interactions = [inter for inter in new_interactions if len(inter) >= 2 and len(inter) % 2 == 1]
         print(self.interaction_strategy, 'with', len(new_interactions), 'new interactions:', new_interactions) 
         interactions += new_interactions
-
         shap_values = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
-
         return shap_values
 
-def new_shap(baseline, explicand, model, num_samples):
+def spex_shap(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True)
+    estimator = NewSHAP(n, game, interaction_strategy='SPEX', paired_sampling=True)
+    return estimator.shap_values(num_samples)
+
+def proxyspex_shap_2n(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True, top_k=2*n)
+    return estimator.shap_values(num_samples)
+
+def proxyspex_shap_4n(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True, top_k=4*n)
+    return estimator.shap_values(num_samples)
+
+def proxyspex_shap_6n(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True, top_k=6*n)
+    return estimator.shap_values(num_samples)
+
+def proxyspex_shap_8n(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = NewSHAP(n, game, interaction_strategy='Proxy SPEX', paired_sampling=True, top_k=8*n)
     return estimator.shap_values(num_samples)
