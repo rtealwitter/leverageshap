@@ -7,5 +7,9 @@ estimators = {
     'Permutation SHAP': official_permutation_shap,
     'Leverage SHAP': leverage_shap,
     'Tree SHAP': official_tree_shap,
-    'New SHAP': new_shap,
+    'SPEX SHAP': spex_shap,
+    'ProxySPEX SHAP 2n': proxyspex_shap_2n,
+    'ProxySPEX SHAP 4n': proxyspex_shap_4n,
+    'ProxySPEX SHAP 6n': proxyspex_shap_6n,
+    'ProxySPEX SHAP 8n': proxyspex_shap_8n,
 }

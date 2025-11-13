@@ -12,8 +12,11 @@ n = X.shape[1]
 sample_sizes = [int(n * mult) for mult in size_mults]
 
 estimator_names = [
-    'Leverage SHAP',
-    'New SHAP',
+    'SPEX SHAP',
+    'ProxySPEX SHAP 2n',
+    'ProxySPEX SHAP 4n',
+    'ProxySPEX SHAP 6n',
+    'ProxySPEX SHAP 8n',
 ]
 
 mse_by_estimator_and_sample_size = {
