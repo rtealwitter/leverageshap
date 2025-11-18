@@ -8,8 +8,24 @@ estimators = {
     'Leverage SHAP': leverage_shap,
     'Tree SHAP': official_tree_shap,
     'SPEX SHAP': spex_shap,
-    'ProxySPEX SHAP 2n': proxyspex_shap_2n,
-    'ProxySPEX SHAP 4n': proxyspex_shap_4n,
-    'ProxySPEX SHAP 6n': proxyspex_shap_6n,
-    'ProxySPEX SHAP 8n': proxyspex_shap_8n,
+    # ProxySPEX (paired)
+    'ProxySPEX Uniform Paired 1n': proxyspex_uniform_shap_paired_1n,
+    'ProxySPEX Uniform Paired 2n': proxyspex_uniform_shap_paired_2n,
+    'ProxySPEX Kernel Paired 1n': proxyspex_kernel_shap_paired_1n,
+    'ProxySPEX Kernel Paired 2n': proxyspex_kernel_shap_paired_2n,
+    # LASSO (paired)
+    'LASSO Uniform Paired 1n': lasso_uniform_shap_paired_1n,
+    'LASSO Uniform Paired 2n': lasso_uniform_shap_paired_2n,
+    'LASSO Kernel Paired 1n': lasso_kernel_shap_paired_1n,
+    'LASSO Kernel Paired 2n': lasso_kernel_shap_paired_2n,
+    # ProxySPEX (unpaired)
+    'ProxySPEX Uniform Unpaired 1n': proxyspex_uniform_shap_unpaired_1n,
+    'ProxySPEX Uniform Unpaired 2n': proxyspex_uniform_shap_unpaired_2n,
+    'ProxySPEX Kernel Unpaired 1n': proxyspex_kernel_shap_unpaired_1n,
+    'ProxySPEX Kernel Unpaired 2n': proxyspex_kernel_shap_unpaired_2n,
+    # LASSO (unpaired)
+    'LASSO Uniform Unpaired 1n': lasso_uniform_shap_unpaired_1n,
+    'LASSO Uniform Unpaired 2n': lasso_uniform_shap_unpaired_2n,
+    'LASSO Kernel Unpaired 1n': lasso_kernel_shap_unpaired_1n,
+    'LASSO Kernel Unpaired 2n': lasso_kernel_shap_unpaired_2n,
 }

@@ -11,23 +11,28 @@ from collections.abc import Callable
 from typing import Any
 
 
-def proxyspex(game, budget, n, top_k: int) -> dict[tuple[int, ...], float]:
+def proxyspex(game, n, top_k: int, samples) -> dict[tuple[int, ...], float]:
     random_state = 0
 
     # Sample budget uniform coalitions (boolean lists) from game
-    uniform_sampler = CoalitionSampler(
-        n_players=n,
-        sampling_weights=np.array([math.comb(n, i) for i in range(n + 1)], dtype=float),
-        pairing_trick=True,
-        random_state=random_state,
-    )
-    uniform_sampler.sample(budget)
+    # if samples is of type int:
+    if isinstance(samples, int):
+        uniform_sampler = CoalitionSampler(
+            n_players=n,
+            sampling_weights=np.array([math.comb(n, i) for i in range(n + 1)], dtype=float),
+            pairing_trick=True,
+            random_state=random_state,
+        )
+        uniform_sampler.sample(samples)
 
-    train_X = pd.DataFrame(
-        uniform_sampler.coalitions_matrix,
-        columns=np.array([f"f{i}" for i in range(n)]),
-    )
-    train_y = game(uniform_sampler.coalitions_matrix)
+        train_X = pd.DataFrame(
+            uniform_sampler.coalitions_matrix,
+            columns=np.array([f"f{i}" for i in range(n)]),
+        )
+        train_y = game(uniform_sampler.coalitions_matrix)
+    else:
+        X = samples[0].astype(float)
+        y = samples[1]
 
     base_model = lgb.LGBMRegressor(verbose=-1, n_jobs=1, random_state=random_state)
 
