@@ -14,16 +14,8 @@ def get_hyperparameter_values(name):
     else:
         raise ValueError(f'Unknown hyperparameter {name}')
 
-main_estimators = [
-    'Permutation SHAP', 
-    #'Kernel SHAP',
-    'Leverage SHAP',
-    'SPEX SHAP',
-    'ProxySPEX SHAP 2n',
-    'ProxySPEX SHAP 4n',
-    'ProxySPEX SHAP 6n',
-    'ProxySPEX SHAP 8n',
-]
+# Collect all estimators exported by the package except 'Tree SHAP' (used as ground truth)
+main_estimators = [name for name in list(ls.estimators.keys()) if name not in ['Tree SHAP', 'Permutation SHAP']]
 
 datasets = small_n + big_n
 
