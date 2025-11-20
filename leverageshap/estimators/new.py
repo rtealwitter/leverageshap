@@ -52,21 +52,8 @@ def spex_top_fourier(game, n, spex_params):
     # ensure keys are plain Python ints (not numpy types)
     return [tuple(int(x) for x in k) for k in list(fourier_inters.keys())]
 
-def proxy_spex_top_fourier(game, n, top_k, budget):
-    # proxyspex_approximator = shapiq.ProxySPEX(n=n, index="FSII", max_order=n)
-    # mobius_inters = proxyspex_approximator.approximate(game=game, budget=budget).dict_values
-    # print(mobius_inters)
-    # # print out the value counts of the key lengths of mobius_inters
-    # length_counts = {}
-    # for key in mobius_inters.keys():
-    #     length = len(key)
-    #     length_counts[length] = length_counts.get(length, 0) + 1
-    # print("Length counts of mobius_inters:", length_counts)
-    # fourier_inters = mobius_to_fourier(mobius_inters)
-    # return list(fourier_inters.keys())
-    # convert any numpy integer types to Python ints
-    return [tuple(int(x) for x in k) for k in proxyspex(game, budget, n, top_k=top_k).keys()]
-
+def proxy_spex_top_fourier(game, n, top_k, samples, odd=True):
+    return [tuple(int(x) for x in k) for k in proxyspex(game, n, top_k=top_k, samples=samples, odd=odd).keys()]
 
 def lasso_top_fourier(game, n, top_k, samples):
     """Fit Lasso on uniform samples, rank first-order terms by |beta|, then build
@@ -240,20 +227,19 @@ class NewSHAP:
                 new_interactions = []
         if self.interaction_strategy == 'ProxySPEX uniform':
             proxyspex_budget = num_samples // 2
-            try:
-                new_interactions = proxy_spex_top_fourier(self.game, self.n, self.top_k, samples=proxyspex_budget)
-                num_samples -= proxyspex_budget
-            except Exception as e:
-                new_interactions = []
+            new_interactions = proxy_spex_top_fourier(self.game, self.n, self.top_k, samples=proxyspex_budget, odd=True)
+            num_samples -= proxyspex_budget
         if self.interaction_strategy == 'LASSO uniform':
-            lasso_budget = num_samples // 4
-            try:
+            if num_samples // 4  < 2:
+                new_interactions = []
+            else:
+                lasso_budget = num_samples // 4 
                 new_interactions = lasso_top_fourier(
                     self.game, self.n, self.top_k, samples=lasso_budget
                 )
                 num_samples -= lasso_budget
-            except Exception as e:
-                new_interactions = []
+        if self.interaction_strategy == 'None':
+            new_interactions = []
 
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=np.ones(self.n-1), pairing_trick=self.paired_sampling)
         sampler.sample(num_samples)
@@ -278,16 +264,13 @@ class NewSHAP:
             new_interactions = []
         if self.interaction_strategy == 'ProxySPEX kernel':
             # use ProxySPEX on kernel sampled coalitions
-            try:
-                new_interactions = proxy_spex_top_fourier(self.game, self.n, self.top_k, samples=(sampled_coalitions, values))
-            except Exception as e:
-                new_interactions = []
+            new_interactions = proxy_spex_top_fourier(self.game, self.n, self.top_k, samples=(sampled_coalitions, values), odd=True)
         if self.interaction_strategy == 'LASSO kernel':
-            # use LASSO on kernel sampled coalitions
-            try:
-                new_interactions = lasso_top_fourier(self.game, self.n, self.top_k, samples=(sampled_coalitions, values))
-            except Exception as e:
+            if num_samples // 4  < 2:
                 new_interactions = []
+            else:
+                # use LASSO on kernel sampled coalitions
+                new_interactions = lasso_top_fourier(self.game, self.n, self.top_k, samples=(sampled_coalitions, values))
         if self.interaction_strategy == 'Deterministic':
             print('Using deterministic with m=', num_samples)
             new_interactions = []
@@ -305,7 +288,9 @@ class NewSHAP:
                     for kdx in sorted_indices[:s]:
                         if idx < jdx < kdx:
                             new_interactions.append((idx, jdx, kdx))
-        new_interactions = [inter for inter in new_interactions if len(inter) >= 2 and len(inter) % 2 == 1]
+        new_interactions = [inter for inter in new_interactions if len(inter) >= 2]
+        if "all" not in self.interaction_strategy:
+            new_interactions = [inter for inter in new_interactions if len(inter) % 2 == 1]
         print(self.interaction_strategy, 'with', len(new_interactions), 'new interactions:', new_interactions) 
         interactions += new_interactions
         shap_values = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
