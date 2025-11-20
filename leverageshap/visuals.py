@@ -4,9 +4,33 @@ import numpy as np
 from .estimators import estimators
 from .benchmark import get_dataset_size
 
-linestyles = ['dashed', 'dotted', 'solid', 'dashdot', (5,(10,3)), (0,(1,1)), (0,(5,10)),(0,(5,1)), (0,(3,10,1,10)), (0,(3,5,1,5)), (0,(3,1,1,1)), (0,(3,5,1,5,1,5)), (0,(3,10,1,10,1,10)), (0,(3,1,1,1,1,1))]
+# Prefer bolder, less-sparse dash patterns for publication-quality PDFs
+linestyles = [
+    'solid',
+    'dashdot',
+    'dashed',
+    'dotted',
+    (0, (5, 2)),   # moderately spaced dash
+    (0, (3, 1)),   # short dash
+    (0, (1, 1)),   # fine dotted (kept sparingly)
+]
 
-cbcolors = ['#661100', '#332288', '#117733', '#CC6677', '#44AA99', '#AA4499', '#882255', '#AA4499','#88CCEE', '#6699CC', '#AA4466', '#4477AA']
+# Distinct, high-contrast palette so the main estimators are easily distinguishable in PDFs
+# Order chosen to provide visually separated hues for the first 6 estimators used in main plots.
+cbcolors = [
+    '#1f77b4',  # blue
+    '#ff7f0e',  # orange
+    '#2ca02c',  # green
+    '#d62728',  # red
+    '#9467bd',  # purple
+    '#17becf',  # cyan
+    '#8c564b',  # brown
+    '#7f7f7f',  # grey
+    '#bcbd22',  # olive
+    '#e377c2',  # pink
+    '#7b4173',  # deep magenta
+    '#393b79',  # indigo
+]
 
 linestyles_lookup = {name: linestyles[i % len(linestyles)] for i, name in enumerate(estimators.keys())}
 
@@ -50,11 +74,12 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
             
             y_upper = np.array([np.percentile(results_by_estimator[x], 75) for x in x_values])
             y_lower = np.array([np.percentile(results_by_estimator[x], 25) for x in x_values])
+            line_kw = dict(linestyle=linestyles_lookup[estimator_name], color=cbcolors_lookup[estimator_name], linewidth=2.0)
             if plot_mean:
-                ax.plot(x_values, y_mean, label=estimator_name, linestyle=linestyles_lookup[estimator_name], color=cbcolors_lookup[estimator_name])
+                ax.plot(x_values, y_mean, label=estimator_name, **line_kw)
             else:
-                ax.plot(x_values, y_median, label=estimator_name, linestyle=linestyles_lookup[estimator_name], color=cbcolors_lookup[estimator_name])
-                ax.fill_between(x_values, y_lower, y_upper, alpha=0.2, color=cbcolors_lookup[estimator_name])
+                ax.plot(x_values, y_median, label=estimator_name, **line_kw)
+                ax.fill_between(x_values, y_lower, y_upper, alpha=0.25, color=cbcolors_lookup[estimator_name])
         if False:#len(to_multiply) > 0: 
             print(dataset)
             ratio = (to_multiply['Leverage SHAP'] / to_multiply['Optimized Kernel SHAP'])
@@ -98,7 +123,7 @@ def plot_data(results, dataset, filename=None, exclude=[], weighted_error=False)
         sample_sizes = list(data.keys())
         mean = np.array([np.mean(data[sample_size]) for sample_size in sample_sizes])
 #        std = np.array([np.std(data[sample_size]) for sample_size in sample_sizes])
-        plt.plot(sample_sizes, mean, label=name, linestyle=linestyles_lookup[name], color=cbcolors_lookup[name])
+        plt.plot(sample_sizes, mean, label=name, linestyle=linestyles_lookup[name], color=cbcolors_lookup[name], linewidth=2.0)
 #        plt.fill_between(sample_sizes, mean - std, mean + std, alpha=0.2)
         num +=1
     # Put legend outside of plot

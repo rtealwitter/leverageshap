@@ -11,12 +11,14 @@ from collections.abc import Callable
 from typing import Any
 
 
-def proxyspex(game, n, top_k: int, samples) -> dict[tuple[int, ...], float]:
+def proxyspex(game, n, top_k: int, samples, odd=True) -> dict[tuple[int, ...], float]:
     random_state = 0
 
     # Sample budget uniform coalitions (boolean lists) from game
     # if samples is of type int:
     if isinstance(samples, int):
+        if samples <= 10:
+            return {}
         uniform_sampler = CoalitionSampler(
             n_players=n,
             sampling_weights=np.array([math.comb(n, i) for i in range(n + 1)], dtype=float),
@@ -31,8 +33,13 @@ def proxyspex(game, n, top_k: int, samples) -> dict[tuple[int, ...], float]:
         )
         train_y = game(uniform_sampler.coalitions_matrix)
     else:
-        X = samples[0].astype(float)
-        y = samples[1]
+        if len(samples[1]) <= 10:
+            return {}
+        train_X = pd.DataFrame(
+            samples[0],
+            columns=np.array([f"f{i}" for i in range(n)]),
+        )
+        train_y = samples[1]
 
     base_model = lgb.LGBMRegressor(verbose=-1, n_jobs=1, random_state=random_state)
 
@@ -57,8 +64,10 @@ def proxyspex(game, n, top_k: int, samples) -> dict[tuple[int, ...], float]:
     best_model = grid_search.best_estimator_
 
     initial_transform = lgboost_to_fourier(best_model.booster_.dump_model())
-
-    return top_k_odd_interactions(initial_transform, top_k)
+    if odd:
+        return top_k_interactions(initial_transform, top_k, odd=True)
+    else:
+        return top_k_interactions(initial_transform, top_k, odd=False)
 
 
 def lgboost_to_fourier(model_dict: dict[str, Any]) -> dict[tuple[int, ...], float]:
@@ -140,7 +149,7 @@ def lgboost_tree_to_fourier(tree_info: dict[str, Any]) -> dict[tuple[int, ...], 
     return dfs_traverse(tree_info["tree_structure"])
 
 
-def top_k_odd_interactions(four_dict: dict[tuple[int, ...], float], k: int) -> dict[tuple[int, ...], float]:
+def top_k_interactions(four_dict: dict[tuple[int, ...], float], k: int, odd: bool) -> dict[tuple[int, ...], float]:
     """Return the top-k Fourier coefficients whose interaction keys have an odd
     cardinality greater than 1.
 
@@ -162,10 +171,11 @@ def top_k_odd_interactions(four_dict: dict[tuple[int, ...], float], k: int) -> d
 
     selected: list[tuple[tuple[int, ...], float]] = []
     for key, val in items:
-        if len(key) > 1 and (len(key) % 2 == 1):
-            selected.append((key, val))
-            if len(selected) >= k:
-                break
+        if len(key) > 1: 
+            if not odd or (len(key) % 2 == 1):
+                selected.append((key, val))
+                if len(selected) >= k:
+                    break
 
     return {k: v for k, v in selected}
 
