@@ -7,6 +7,8 @@ estimators = {
     'Permutation SHAP': official_permutation_shap,
     'Leverage SHAP': leverage_shap,
     'Tree SHAP': official_tree_shap,
+    # Fourier SHAP
+    'Fourier SHAP': fourier_shap,
     'SPEX SHAP': spex_shap,
     # ProxySPEX (paired)
     'ProxySPEX Uniform Paired 1n': proxyspex_uniform_shap_paired_1n,
