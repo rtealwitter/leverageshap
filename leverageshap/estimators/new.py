@@ -211,7 +211,7 @@ class NewSHAP:
         return shap_values
     
     def shap_values(self, num_samples):
-        if num_samples < 6:
+        if num_samples < 4:
             print('Number of samples too small, setting to 4.')
             num_samples = 4
 
@@ -396,4 +396,10 @@ def lasso_kernel_shap_unpaired_2n(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
     estimator = NewSHAP(n, game, interaction_strategy='LASSO kernel', paired_sampling=False, top_k=2*n)
+    return estimator.shap_values(num_samples)
+
+def fourier_shap(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=True, top_k=num_samples//10)
     return estimator.shap_values(num_samples)
