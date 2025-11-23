@@ -64,10 +64,11 @@ def proxyspex(game, n, top_k: int, samples, odd=True) -> dict[tuple[int, ...], f
     best_model = grid_search.best_estimator_
 
     initial_transform = lgboost_to_fourier(best_model.booster_.dump_model())
+
     if odd:
         return top_k_interactions(initial_transform, top_k, odd=True)
     else:
-        return top_k_interactions(initial_transform, top_k, odd=False)
+        return initial_transform
 
 
 def lgboost_to_fourier(model_dict: dict[str, Any]) -> dict[tuple[int, ...], float]:

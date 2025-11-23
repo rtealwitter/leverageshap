@@ -1,3 +1,4 @@
+import math
 import numpy as np
 from .sampling import CoalitionSampler
 from .helpers import Game
@@ -295,6 +296,35 @@ class NewSHAP:
         interactions += new_interactions
         shap_values = self.setupandsolve(interactions, sampled_coalitions, values, sampling_probs)
         return shap_values
+    
+class DirectProxySPEX(NewSHAP):
+    # uses all samples to 
+    def shap_values(self, num_samples):
+        if num_samples < 4:
+            print('Number of samples too small, setting to 4.')
+            num_samples = 4
+
+        # take uniform samples
+        
+        if "ProxySPEX uniform" in self.interaction_strategy:
+            # take uniform samples
+            sampler = CoalitionSampler(
+                            n_players=self.n,
+                            sampling_weights=np.array([math.comb(self.n, i) for i in range(1,self.n)], dtype=float),
+                            pairing_trick=self.paired_sampling,
+                        )
+        else:
+            # take kernel samples
+            sampler = CoalitionSampler(n_players=self.n, sampling_weights=np.ones(self.n-1), pairing_trick=self.paired_sampling)
+        sampler.sample(num_samples)
+        sampled_coalitions = sampler.coalitions_matrix
+        values = self.game(sampled_coalitions)
+        fourier_transform = proxyspex(self.game, self.n, top_k=-1, samples=(sampled_coalitions, values), odd=False)
+
+        # convert fourier transform into shap_values
+        shap_values = shapley_from_fourier(interactions=list(fourier_transform.keys()), coeffs=list(fourier_transform.values()), n=self.n)
+
+        return shap_values
 
 def spex_shap(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
@@ -302,104 +332,32 @@ def spex_shap(baseline, explicand, model, num_samples):
     estimator = NewSHAP(n, game, interaction_strategy='SPEX', paired_sampling=True)
     return estimator.shap_values(num_samples)
 
-def proxyspex_uniform_shap_paired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=True, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_uniform_shap_paired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=True, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_kernel_shap_paired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=True, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_kernel_shap_paired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=True, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_uniform_shap_paired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO uniform', paired_sampling=True, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_uniform_shap_paired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO uniform', paired_sampling=True, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_kernel_shap_paired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO kernel', paired_sampling=True, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_kernel_shap_paired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO kernel', paired_sampling=True, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_uniform_shap_unpaired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=False, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_uniform_shap_unpaired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=False, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_kernel_shap_unpaired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=False, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def proxyspex_kernel_shap_unpaired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=False, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_uniform_shap_unpaired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO uniform', paired_sampling=False, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_uniform_shap_unpaired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO uniform', paired_sampling=False, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_kernel_shap_unpaired_1n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO kernel', paired_sampling=False, top_k=1*n)
-    return estimator.shap_values(num_samples)
-
-def lasso_kernel_shap_unpaired_2n(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
-    n = baseline.shape[1]
-    estimator = NewSHAP(n, game, interaction_strategy='LASSO kernel', paired_sampling=False, top_k=2*n)
-    return estimator.shap_values(num_samples)
-
 def fourier_shap(baseline, explicand, model, num_samples):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
     estimator = NewSHAP(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=True, top_k=num_samples//10)
+    return estimator.shap_values(num_samples)
+
+def uniform_proxyspex_paired(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = DirectProxySPEX(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=True, top_k=-1)
+    return estimator.shap_values(num_samples)
+
+def uniform_proxyspex_unpaired(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = DirectProxySPEX(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=False, top_k=-1)
+    return estimator.shap_values(num_samples)
+
+def kernel_proxyspex_paired(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = DirectProxySPEX(n, game, interaction_strategy='ProxySPEX kernel', paired_sampling=True, top_k=-1)
+    return estimator.shap_values(num_samples)
+
+def kernel_proxyspex_unpaired(baseline, explicand, model, num_samples):
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = DirectProxySPEX(n, game, interaction_strategy='ProxySPEX uniform', paired_sampling=False, top_k=-1)
     return estimator.shap_values(num_samples)
