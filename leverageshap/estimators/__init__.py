@@ -9,25 +9,9 @@ estimators = {
     'Tree SHAP': official_tree_shap,
     # Fourier SHAP
     'Fourier SHAP': fourier_shap,
+    'Uniform ProxySPEX paired': uniform_proxyspex_paired,
+    'Uniform ProxySPEX unpaired': uniform_proxyspex_unpaired,
+    'Kernel ProxySPEX paired': kernel_proxyspex_paired,
+    'Kernel ProxySPEX unpaired': kernel_proxyspex_unpaired,
     'SPEX SHAP': spex_shap,
-    # ProxySPEX (paired)
-    'ProxySPEX Uniform Paired 1n': proxyspex_uniform_shap_paired_1n,
-    'ProxySPEX Uniform Paired 2n': proxyspex_uniform_shap_paired_2n,
-    'ProxySPEX Kernel Paired 1n': proxyspex_kernel_shap_paired_1n,
-    'ProxySPEX Kernel Paired 2n': proxyspex_kernel_shap_paired_2n,
-    # LASSO (paired)
-    'LASSO Uniform Paired 1n': lasso_uniform_shap_paired_1n,
-    'LASSO Uniform Paired 2n': lasso_uniform_shap_paired_2n,
-    'LASSO Kernel Paired 1n': lasso_kernel_shap_paired_1n,
-    'LASSO Kernel Paired 2n': lasso_kernel_shap_paired_2n,
-    # ProxySPEX (unpaired)
-    'ProxySPEX Uniform Unpaired 1n': proxyspex_uniform_shap_unpaired_1n,
-    'ProxySPEX Uniform Unpaired 2n': proxyspex_uniform_shap_unpaired_2n,
-    'ProxySPEX Kernel Unpaired 1n': proxyspex_kernel_shap_unpaired_1n,
-    'ProxySPEX Kernel Unpaired 2n': proxyspex_kernel_shap_unpaired_2n,
-    # LASSO (unpaired)
-    'LASSO Uniform Unpaired 1n': lasso_uniform_shap_unpaired_1n,
-    'LASSO Uniform Unpaired 2n': lasso_uniform_shap_unpaired_2n,
-    'LASSO Kernel Unpaired 1n': lasso_kernel_shap_unpaired_1n,
-    'LASSO Kernel Unpaired 2n': lasso_kernel_shap_unpaired_2n,
 }
