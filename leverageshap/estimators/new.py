@@ -245,7 +245,7 @@ class NewSHAP:
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=np.ones(self.n-1), pairing_trick=self.paired_sampling)
         sampler.sample(num_samples)
         sampled_coalitions = sampler.coalitions_matrix
-        sampling_probs = sampler.sampling_probabilities
+        sampling_probs = sampler.coalitions_probability
         values = self.game(sampled_coalitions)
 
         interactions = [(i,) for i in range(self.n)]

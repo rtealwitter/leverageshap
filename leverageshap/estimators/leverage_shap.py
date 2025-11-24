@@ -27,7 +27,7 @@ class LeverageSHAP:
         sampler.sample(num_samples)
         coalition_matrix = sampler.coalitions_matrix
         coalition_sizes = np.sum(coalition_matrix, axis=1)
-        sampling_probs = sampler.sampling_probabilities
+        sampling_probs = sampler.coalitions_probability
 
         # Filter out empty and full coalitions
         filtered_indices = np.where((coalition_sizes > 0) & (coalition_sizes < self.n))[0]
