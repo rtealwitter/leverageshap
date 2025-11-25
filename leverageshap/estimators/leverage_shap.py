@@ -37,13 +37,13 @@ class LeverageSHAP:
             print('Number of samples too small, setting to 6')
             num_samples = 6
 
-        sampling_weights = np.ones(self.n)
+        sampling_weights = np.ones(self.n-1)
 
         sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling, random_state=42)
         sampler.sample(num_samples)
         coalition_matrix = sampler.coalitions_matrix
         coalition_sizes = np.sum(coalition_matrix, axis=1)
-        sampling_probs = sampler.sampling_probabilities
+        sampling_probs = sampler.coalitions_probability
 
         # Filter out empty and full coalitions
         filtered_indices = np.where((coalition_sizes > 0) & (coalition_sizes < self.n))[0]
