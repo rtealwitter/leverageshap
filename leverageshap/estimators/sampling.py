@@ -58,6 +58,7 @@ class CoalitionSampler:
         *,
         pairing_trick: bool = True,
         random_state: int | None = None,
+        sample_with_replacement: bool = False,
     ) -> None:
         self.n_players = n_players
 
@@ -79,6 +80,7 @@ class CoalitionSampler:
         self._rng = np.random.default_rng(seed=random_state)
 
         self.sampled = False
+        self.sample_with_replacement = sample_with_replacement
 
     def sampling_probs(self, sizes: np.ndarray) -> np.ndarray:
         '''
@@ -303,7 +305,7 @@ class CoalitionSampler:
         '''
         Generate num_samples random combinations of s elements from a pool num_samples of size n in two settings:
         1. If the number of combinations is small (converting to an int does NOT cause an overflow error), randomly sample num_samples integers without replacement and generate the corresponding combinations on the fly with index_th_combination.
-        2. If the number of combinations is large (converting to an int DOES cause an overflow error), randomly sample num_samples combinations directly with replacement.
+        2. If the number of combinations is large (converting to an int DOES cause an overflow error) OR self.sample_with_replacement is True, randomly sample num_samples combinations directly with replacement.
         Args:
             gen: numpy random generator
             n (int): Size of the pool to sample from.
@@ -314,9 +316,10 @@ class CoalitionSampler:
         '''
         num_combos = math.comb(n, s)
         try:
+            assert not self.sample_with_replacement
             indices = self._rng.choice(num_combos, num_samples, replace=False)
             for i in indices:
                 yield self.index_th_combination(range(n), s, i)
-        except OverflowError:
+        except (OverflowError, AssertionError):
             for _ in range(num_samples):
                 yield self._rng.choice(n, s, replace=False)
