@@ -12,44 +12,32 @@ class CoalitionSampler:
 
     Args:
         n_players (int): Number of players in the game.
+
         sampling_weights (np.ndarray): Array of sampling weights per coalition size (length n_players-1).
+
         pairing_trick (bool, optional): Whether to use the pairing trick to reduce computation. Defaults to True.
+
         random_state (int | None, optional): Random seed for reproducibility
-        Attributes:
-        n: The number of players in the game.
 
-        n_max_coalitions: The maximum number of possible coalitions.
+        sample_with_replacement (bool, optional): Whether to sample coalitions with replacement when the number of combinations is too large. Defaults to False.
 
-        adjusted_sampling_weights: The adjusted sampling weights without zero-weighted coalition sizes.
-            The array is of shape ``(n_sizes_to_sample,)``.
-
-        _rng: The random number generator used for sampling.
-
-
-    Properties:
-        sampled: A flag indicating whether the sampling process has been executed.
-
-        coalitions_matrix: The binary matrix of sampled coalitions of shape ``(n_coalitions,
-            n_players)``.
-
-        coalitions_counter: The number of occurrences of the coalitions. The array is of shape
+    All variables are stored in the sampler, no objects are returned. The following variables
+    are computed:
+        - ``_sampled_coalitions_matrix``: A binary matrix that consists of one row for each sampled
+            coalition. Each row is a binary vector that indicates the players in the coalition.
+            The matrix is of shape ``(n_coalitions, n_players)``.
+        - ``_sampled_coalitions_counter``: An array with the number of occurrences of the coalitions
+            in the sampling process. The array is of shape ``(n_coalitions,)``.
+        - ``_sampled_coalitions_probability``: An array with the coalition probabilities according to
+            the sampling procedure (i.e., the sampling weights). The array is of shape
             ``(n_coalitions,)``.
-
-        coalitions_probability: The coalition probabilities according to the sampling procedure. The
-             array is of shape ``(n_coalitions,)``.
-
-        coalitions_size_probability: The coalitions size probabilities according to the sampling
-            procedure. The array is of shape ``(n_coalitions,)``.
-
-        coalitions_size_probability: The coalitions probabilities in their size according to the
-            sampling procedure. The array is of shape ``(n_coalitions,)``.
-
-        n_coalitions: The number of coalitions that have been sampled.
-
-        sampling_adjustment_weights: The weights that account for the sampling procedure (importance
-            sampling)
-
-        sampling_size_probabilities: The probabilities of each coalition size to be sampled.
+        - ``_sampled_coalitions_per_size``: An array with the number of sampled coalitions per size
+            (including the empty and full set). The array is of shape ``(n_players + 1,)``.
+        - ``_is_coalition_size_sampled``: An array that contains True, if the coalition size was
+            sampled and False (computed exactly) otherwise. The array is of shape
+            ``(n_players + 1,)``.
+        - ``sampled_coalitions_dict``:`` A dictionary containing all sampled coalitions mapping to
+            their number of occurrences. The dictionary is of type ``dict[tuple[int, ...], int]``.
     '''
     def __init__(
         self,
@@ -60,7 +48,7 @@ class CoalitionSampler:
         random_state: int | None = None,
         sample_with_replacement: bool = False,
     ) -> None:
-        self.n_players = n_players
+        self._n_players = n_players
 
         if len(sampling_weights) == n_players + 1:
             sampling_weights = sampling_weights[1:-1]
@@ -71,18 +59,18 @@ class CoalitionSampler:
         elif len(sampling_weights) != n_players - 1:
             raise ValueError(f"sampling_weights should be of length n_players-1, but got length {len(sampling_weights)}.")
 
-        self.distribution = sampling_weights / np.min(sampling_weights)
+        self._distribution = sampling_weights / np.min(sampling_weights)
         # Insert 0 for empty coalition size and full coalition size
-        self.distribution = np.concatenate(([0.0], self.distribution, [0.0]))
+        self._distribution = np.concatenate(([0.0], self._distribution, [0.0]))
 
         # Ensure smallest weight is 1
-        self.pairing_trick = pairing_trick
+        self._pairing_trick = pairing_trick
         self._rng = np.random.default_rng(seed=random_state)
 
-        self.sampled = False
-        self.sample_with_replacement = sample_with_replacement
+        self._sampled = False
+        self._sample_with_replacement = sample_with_replacement
 
-    def sampling_probs(self, sizes: np.ndarray) -> np.ndarray:
+    def _sampling_probs(self, sizes: np.ndarray) -> np.ndarray:
         '''
         Compute sampling probabilities for given coalition sizes using the constant computed in get_sampling_probs.
         Args:
@@ -91,10 +79,10 @@ class CoalitionSampler:
             np.ndarray: Sampling probabilities for the given coalition sizes.
         '''
         return np.minimum(
-            self.constant * self.distribution[sizes] / binom(self.n_players, sizes), 1
+            self._constant * self._distribution[sizes] / binom(self._n_players, sizes), 1
         )
 
-    def get_sampling_probs(self, budget: int):
+    def _get_sampling_probs(self, budget: int):
         '''
         Compute sampling probabilities without iteration by inverting the
         piecewise-linear function:
@@ -105,22 +93,22 @@ class CoalitionSampler:
         Args:
             budget (int): Total number of coalitions to sample (excluding empty and full coalitions)
         Returns:
-            None: Sets self.constant and allows sampling_probs(sizes) to be called.
+            None: Sets self._constant and allows sampling_probs(sizes) to be called.
         (Function written by ChatGPT)
         '''
-        n = self.n_players
+        n = self._n_players
         sizes = np.arange(1, n)
 
         # Per-size caps = number of coalitions of that size
         comb_counts = binom(n, sizes).astype(float)          # C(n, k)
         # Per-size weights from the distribution (>= 1 by construction)
-        weights = self.distribution[sizes].astype(float)
+        weights = self._distribution[sizes].astype(float)
 
         # Target expected total, clipped to feasible range [0, 2^n]
         target_total = float(np.clip(budget, 0, np.sum(comb_counts)))
         if target_total == 0.0:
-            self.constant = 0.0
-            return self.sampling_probs(sizes)
+            self._constant = 0.0
+            return self._sampling_probs(sizes)
 
         # Breakpoints where a term saturates: c >= comb_counts[k] / weights[k]
         saturation_thresholds = comb_counts / weights
@@ -151,18 +139,18 @@ class CoalitionSampler:
                     min((target_total - saturated_prefix[segment_idx]) / denom,
                         thresholds_sorted[segment_idx])
 
-        self.constant = float(scale)
+        self._constant = float(scale)
 
-    def add_one_sample(self, indices: Sequence[int]):
+    def _add_one_sample(self, indices: Sequence[int]):
         '''
         Add one sampled coalition to storage.
         Args:
             indices (Sequence[int]): Indices of players in the coalition.
         Returns:
-            None: Sample is stored in self.coalitions_matrix and self.sampled_coalitions_dict
+            None: Sample is stored in self._sampled_coalitions_matrix and self._sampledsampled_coalitions_dict
         '''
-        self.coalitions_matrix[self._coalition_idx, indices] = 1
-        self.sampled_coalitions_dict[tuple(sorted(indices))] = 1
+        self._sampled_coalitions_matrix[self._coalition_idx, indices] = 1
+        self._sampledsampled_coalitions_dict[tuple(sorted(indices))] = 1
         self._coalition_idx += 1 
 
     def sample(self, budget: int):
@@ -171,70 +159,71 @@ class CoalitionSampler:
         Args:
             budget (int): Total number of coalitions to sample (including empty and full coalitions
         Returns:
-            None: Samples are stored in self.coalitions_matrix and self.sampled_coalitions_dict
+            None: Samples are stored in self._sampled_coalitions_matrix and self._sampledsampled_coalitions_dict
         '''
         # Budget is an EVEN number between 2 and 2^n
         assert budget >= 2, "Budget must be at least 2"
-        budget = min(budget, 2**self.n_players)
+        budget = min(budget, 2**self._n_players)
         budget += budget % 2
 
         # Get sampling probabilities
-        self.get_sampling_probs(budget-2) # minus 2 for empty and full coalitions
-        sizes = np.arange(1, self.n_players)
-        samples_per_size = self.symmetric_round_even(
-            self.sampling_probs(sizes) * binom(self.n_players, sizes)
+        self._get_sampling_probs(budget-2) # minus 2 for empty and full coalitions
+        sizes = np.arange(1, self._n_players)
+        samples_per_size = self._symmetric_round_even(
+            self._sampling_probs(sizes) * binom(self._n_players, sizes)
         )
-        sampling_probs = samples_per_size / binom(self.n_players, sizes)
+        sampling_probs = samples_per_size / binom(self._n_players, sizes)
 
         # Initialize storage
-        self.coalitions_matrix = np.zeros((budget, self.n_players), dtype=bool)
+        self._sampled_coalitions_matrix = np.zeros((budget, self._n_players), dtype=bool)
         self._coalition_idx = 0
-        self.sampled_coalitions_dict = {}
+        self._sampledsampled_coalitions_dict = {}
 
         # Sample empty and full coalitions
-        self.add_one_sample([])
-        self.add_one_sample(list(range(self.n_players)))
+        self._add_one_sample([])
+        self._add_one_sample(list(range(self._n_players)))
 
         for idx, size in enumerate(sizes):
-            if idx >= self.n_players//2 and self.pairing_trick:
+            if idx >= self._n_players//2 and self._pairing_trick:
                 break  # Stop early because of pairing
-            if self.pairing_trick and size == self.n_players // 2 and self.n_players % 2 == 0:
-                combo_gen = self.combination_generator(
-                    self.n_players - 1, size - 1, samples_per_size[idx] // 2
+            if self._pairing_trick and size == self._n_players // 2 and self._n_players % 2 == 0:
+                combo_gen = self._combination_generator(
+                    self._n_players - 1, size - 1, samples_per_size[idx] // 2
                 )
                 for indices in combo_gen:
-                    self.add_one_sample(list(indices) + [self.n_players - 1])
-                    self.add_one_sample(list(set(range(self.n_players-1)) - set(indices)))
+                    self._add_one_sample(list(indices) + [self._n_players - 1])
+                    self._add_one_sample(list(set(range(self._n_players-1)) - set(indices)))
             else:
-                combo_gen = self.combination_generator(
-                    self.n_players, size, samples_per_size[idx]
+                combo_gen = self._combination_generator(
+                    self._n_players, size, samples_per_size[idx]
                 )
                 for indices in combo_gen:
-                    self.add_one_sample(list(indices))
-                    if self.pairing_trick:
-                        self.add_one_sample(
-                            list(set(range(self.n_players)) - set(indices))
+                    self._add_one_sample(list(indices))
+                    if self._pairing_trick:
+                        self._add_one_sample(
+                            list(set(range(self._n_players)) - set(indices))
                         )
 
-        coalition_sizes = np.sum(self.coalitions_matrix, axis=1)
+        coalition_sizes = np.sum(self._sampled_coalitions_matrix, axis=1)
         # Assign 1 to sizes of 0 and n
-        self.coalitions_probability = np.ones(self.coalitions_matrix.shape[0])
-        filter_idx = (coalition_sizes > 0) & (coalition_sizes < self.n_players)
-        self.coalitions_probability[filter_idx] = sampling_probs[coalition_sizes[filter_idx]-1]
-        self.sampling_adjustment_weights = np.ones(self.coalitions_matrix.shape[0])
-        self.sampling_adjustment_weights[filter_idx] = 1 / sampling_probs[coalition_sizes[filter_idx]-1]
+        self._sampled_coalitions_probability = np.ones(self._sampled_coalitions_matrix.shape[0])
+        filter_idx = (coalition_sizes > 0) & (coalition_sizes < self._n_players)
+        self._sampled_coalitions_probability[filter_idx] = sampling_probs[coalition_sizes[filter_idx]-1]
+        self._sampling_adjustment_weights = np.ones(self._sampled_coalitions_matrix.shape[0])
+        self._sampling_adjustment_weights[filter_idx] = 1 / sampling_probs[coalition_sizes[filter_idx]-1]
 
         # Legacy attributes
-        self.sampled = True
-        self.coalitions_counter = np.ones(self.coalitions_matrix.shape[0], dtype=int)
-        self.coalition_size_probability = np.minimum(self.sampling_probs(coalition_sizes) * binom(self.n_players, coalition_sizes), 1)
+        self._sampled = True
+        self._sampled_coalitions_counter = np.ones(self._sampled_coalitions_matrix.shape[0], dtype=int)
+        self._coalition_size_probability = np.minimum(self._sampling_probs(coalition_sizes) * binom(self._n_players, coalition_sizes), 1)
+
         # Sort out number of coalitions per size
-        self.coalitions_per_size = np.zeros(self.n_players + 1, dtype=int)
+        self._sampled_coalitions_per_size = np.zeros(self._n_players + 1, dtype=int)
         for size in coalition_sizes:
-            self.coalitions_per_size[size] += 1
-        self.is_coalition_size_sampled = coalition_sizes > 0
+            self._sampled_coalitions_per_size[size] += 1
+        self._is_coalition_size_sampled = coalition_sizes > 0
     
-    def symmetric_round_even(self, x: np.ndarray) -> np.ndarray:
+    def _symmetric_round_even(self, x: np.ndarray) -> np.ndarray:
         '''
         Given a vector x, returns a vector of integers whose sum is the closest even integer to sum(x),
         and which is symmetric (i.e., the i-th and (n-i)-th entries are the same).
@@ -259,7 +248,7 @@ class CoalitionSampler:
             out[n//2] += 1; rem -= 1
         return out
 
-    def index_th_combination(self, pool: Sequence[TypeVar("T")], size: int, index: int) -> Tuple[TypeVar("T"), ...]:
+    def _index_th_combination(self, pool: Sequence[TypeVar("T")], size: int, index: int) -> Tuple[TypeVar("T"), ...]:
         """
         Sample the index-th combination of a given size from the pool in linear time in size of the pool.
         Args:
@@ -301,11 +290,11 @@ class CoalitionSampler:
 
         return tuple(combo)
 
-    def combination_generator(self, n: int, s: int, num_samples: int) -> Sequence[Tuple[int, ...]]:
+    def _combination_generator(self, n: int, s: int, num_samples: int) -> Sequence[Tuple[int, ...]]:
         '''
         Generate num_samples random combinations of s elements from a pool num_samples of size n in two settings:
         1. If the number of combinations is small (converting to an int does NOT cause an overflow error), randomly sample num_samples integers without replacement and generate the corresponding combinations on the fly with index_th_combination.
-        2. If the number of combinations is large (converting to an int DOES cause an overflow error) OR self.sample_with_replacement is True, randomly sample num_samples combinations directly with replacement.
+        2. If the number of combinations is large (converting to an int DOES cause an overflow error) OR self._sample_with_replacement is True, randomly sample num_samples combinations directly with replacement.
         Args:
             gen: numpy random generator
             n (int): Size of the pool to sample from.
@@ -316,10 +305,10 @@ class CoalitionSampler:
         '''
         num_combos = math.comb(n, s)
         try:
-            assert not self.sample_with_replacement
+            assert not self._sample_with_replacement
             indices = self._rng.choice(num_combos, num_samples, replace=False)
             for i in indices:
-                yield self.index_th_combination(range(n), s, i)
+                yield self._index_th_combination(range(n), s, i)
         except (OverflowError, AssertionError):
             for _ in range(num_samples):
                 yield self._rng.choice(n, s, replace=False)
