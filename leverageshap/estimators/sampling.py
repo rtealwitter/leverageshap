@@ -46,8 +46,8 @@ class CoalitionSampler:
         self.distribution = np.concatenate(([0.0], self.distribution, [0.0]))
 
         self.pairing_trick = pairing_trick
-        self._rng = np.random.default_rng(seed=random_state)
         self.sample_with_replacement = sample_with_replacement
+        self.set_random_state(random_state)
 
     def get_sampling_probs(self, sizes: np.ndarray) -> np.ndarray:
         '''
@@ -128,7 +128,9 @@ class CoalitionSampler:
             None: Sample is stored in self.coalitions_matrix and self.sampled_coalitions_dict
         '''
         self.coalitions_matrix[self._coalition_idx, indices] = 1
-        self.sampled_coalitions_dict[tuple(sorted(indices))] = 1
+        if tuple(sorted(indices)) not in self.sampled_coalitions_dict:
+            self.sampled_coalitions_dict[tuple(sorted(indices))] = 0
+        self.sampled_coalitions_dict[tuple(sorted(indices))] += 1
         self._coalition_idx += 1 
 
     def symmetric_round_even(self, x: np.ndarray) -> np.ndarray:
@@ -312,6 +314,23 @@ class CoalitionSampler:
         is_size_sampled = np.zeros(self.n_players + 1, dtype=bool)
         is_size_sampled[self.coalitions_size] = True
         return is_size_sampled
+    
+    @property
+    def is_coalition_sampled(self) -> np.ndarray:
+        """
+        Returns:
+            A dictionary indicating whether each coalition was sampled ``(n_coalitions,)``
+        """
+        return self.is_coalition_sampled[self.coalitions_size]
+
+    @property
+    def coalitions_probability(self) -> np.ndarray:
+        """
+        Returns:
+            A copy of the sampled coalitions probabilities of shape ``(n_coalitions,)``
+        """
+        return self.get_sampling_probs(self.coalitions_size)
+
 
     @property
     def sampling_adjustment_weights(self) -> np.ndarray:
@@ -319,19 +338,20 @@ class CoalitionSampler:
         Returns:
             An array with adjusted weight for each coalition ``(n_coalitions,)``
         """
-        return 1 / self.get_sampling_probs(self.coalitions_size)
-
+        return 1 / self.coalitions_probability
+    
     @property
-    def coalitions_probability(self) -> np.ndarray:
+    def coalitions_counter(self) -> np.ndarray:
         """
-        Returns the probability that each coalition was sampled according to the sampling procedure.
-
         Returns:
-            A copy of the sampled coalitions probabilities of shape ``(n_coalitions,)`` or ``None``
-                if the coalition probabilities are not available.
-
+            An array with the number of times each coalition was sampled ``(n_coalitions,)``
         """
-        return self.get_sampling_probs(self.coalitions_size)
+        # Iterate over each coalition in the coalitions_matrix and get its count from sampled_coalitions_dict
+        counts = np.zeros(self.n_coalitions, dtype=int)
+        for i in range(self.n_coalitions):
+            coalition_tuple = tuple(np.where(self.coalitions_matrix[i])[0])
+            counts[i] = self.sampled_coalitions_dict.get(coalition_tuple, 0)
+        return counts
 
     @property
     def empty_coalition_index(self) -> int | None:
@@ -345,4 +365,12 @@ class CoalitionSampler:
         except IndexError:
             pass
         return None
+    
+    def set_random_state(self, random_state: int | None) -> None:
+        '''
+        Set the random state of the sampler.
+        Args:
+            random_state (int | None): Random seed for reproducibility
+        '''
+        self._rng = np.random.default_rng(seed=random_state)
     
