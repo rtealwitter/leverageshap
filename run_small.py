@@ -13,7 +13,11 @@ sample_sizes = [int(n * mult) for mult in size_mults]
 
 # Collect all estimators exported by the package except 'Tree SHAP' (used as ground truth)
 #estimator_names = [name for name in list(ls.estimators.keys()) if name not in ['Tree SHAP', 'Permutation SHAP']]
-estimator_names = ['Leverage SHAP', 'Fourier SHAP']
+estimator_names = [
+    'Regression MSR',
+    'Leverage SHAP',
+    'Fourier SHAP'
+]
 
 mse_by_estimator_and_sample_size = {
     name: {sample_size : [] for sample_size in sample_sizes} for name in estimator_names

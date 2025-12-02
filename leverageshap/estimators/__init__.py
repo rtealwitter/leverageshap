@@ -1,5 +1,6 @@
 from .official_shap import *
 from .leverage_shap import *
+from .regression_msr import *
 from .new import *
 
 estimators = {
@@ -7,6 +8,7 @@ estimators = {
     'Permutation SHAP': official_permutation_shap,
     'Leverage SHAP': leverage_shap,
     'Tree SHAP': official_tree_shap,
+    'Regression MSR': regression_msr,
     # Fourier SHAP
     'Fourier SHAP': fourier_shap,
     'Uniform ProxySPEX paired': uniform_proxyspex_paired,
