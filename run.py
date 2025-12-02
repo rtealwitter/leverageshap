@@ -16,6 +16,7 @@ def get_hyperparameter_values(name):
 
 # Collect all estimators exported by the package except 'Tree SHAP' (used as ground truth)
 main_estimators = ['Leverage SHAP', 'Fourier SHAP', 'Uniform ProxySPEX paired', 'Uniform ProxySPEX unpaired', 'Kernel ProxySPEX paired', 'Kernel ProxySPEX unpaired']
+main_estimators = ['Leverage SHAP', 'Regression MSR']#, 'Fourier SHAP']
 datasets = small_n + big_n
 
 if True:
