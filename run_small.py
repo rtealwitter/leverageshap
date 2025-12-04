@@ -2,9 +2,9 @@ import xgboost as xgb
 import leverageshap as ls
 import numpy as np
 
-dataset = 'Adult'
+dataset = 'NHANES'
 reps = 3
-size_mults = [1, 2, 4, 8, 16, 32, 64]
+size_mults = [.25, .5, 1, 2, 4, 8, 16, 32, 64]
 
 X, y = ls.load_dataset(dataset)
 n = X.shape[1]
@@ -15,8 +15,8 @@ sample_sizes = [int(n * mult) for mult in size_mults]
 #estimator_names = [name for name in list(ls.estimators.keys()) if name not in ['Tree SHAP', 'Permutation SHAP']]
 estimator_names = [
     'Regression MSR',
-    'Leverage SHAP',
-    'Fourier SHAP'
+#    'Leverage SHAP',
+#    'Fourier SHAP'
 ]
 
 mse_by_estimator_and_sample_size = {
