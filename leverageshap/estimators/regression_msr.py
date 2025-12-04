@@ -21,6 +21,18 @@ class RegressionMSR:
         sizes = np.arange(self.n)
         shapley_weights_by_size = 1 / (self.n * binom(self.n-1, sizes))
 
+        sampling_weights = []
+        for size in range(self.n+1):
+            prob = 0
+            if size > 0:
+                prob += shapley_weights_by_size[size-1]**2 * size
+            if size < self.n:
+                prob += shapley_weights_by_size[size]**2 * (self.n - size)
+            sampling_weights.append( np.sqrt(prob) )
+        sampling_weights = np.array(sampling_weights[1:-1], dtype=float)
+
+        #sampling_weights = 1 / (np.arange(1, self.n) * (self.n - np.arange(1, self.n)))
+
         sampling_weights = np.ones(self.n-1)
 
         sampler = CoalitionSampler(
@@ -41,7 +53,7 @@ class RegressionMSR:
         model.fit(coalitions_matrix, game_values)
 
         explainer = shap.TreeExplainer(
-            model, feature_perturbation="interventional", data=np.zeros((1, self.n))
+            model, data=np.zeros((1, self.n))
         )
 
         tree_phi = explainer.shap_values(np.ones(self.n))
