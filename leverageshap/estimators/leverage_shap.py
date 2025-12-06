@@ -81,7 +81,6 @@ class CustomMaskerGame(Game):
         # S is a m by n binary matrix
         inputs = self.masker(S, self.explicand)
         m, N, *n = inputs.shape
-        print(m, N, n)
         inputs = inputs.reshape(-1, *n)
         values = self.model.predict(inputs).reshape(m, N, -1)
         return np.mean(values, axis=1)
