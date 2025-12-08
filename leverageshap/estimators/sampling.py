@@ -324,7 +324,7 @@ class CoalitionSampler:
         """
         is_size_sampled = np.zeros(self.n + 1, dtype=bool)
         is_size_sampled[0] = is_size_sampled[self.n] = True
-        is_size_sampled[1:-1] = self.samples_per_size == binom(self.n, np.arange(1, self.n))
+        is_size_sampled[1:-1] = (self.samples_per_size != binom(self.n, np.arange(1, self.n)))
         return is_size_sampled
     
     @property
