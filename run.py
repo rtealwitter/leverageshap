@@ -19,7 +19,7 @@ main_estimators = ['Leverage SHAP', 'Fourier SHAP', 'Uniform ProxySPEX paired', 
 main_estimators = ['Leverage SHAP', 'Regression MSR']#, 'Fourier SHAP']
 datasets = small_n + big_n
 
-if True:
+if False:
     main_estimators = {
         name: ls.estimators[name] for name in main_estimators
     }
@@ -32,7 +32,7 @@ if True:
 
 # Plots
 
-for y_name in ['shap_error', 'weighted_error']:
+for y_name in ['shap_error']:#, 'weighted_error']:
     # Performance by number of samples
     x_name = 'sample_size'
     constraints = {'noise': 0}
@@ -40,13 +40,13 @@ for y_name in ['shap_error', 'weighted_error']:
     for ending in ['png', 'pdf']:
         ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}-SPEX.{ending}', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
 
-    # Performance by noise level
-    x_name = 'noise'
-    constraints = {'sample_size': 10}
-    results = ls.load_results(small_n + big_n, x_name, y_name, constraints)
-    for ending in ['png', 'pdf']:
-        ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}-SPEX.{ending}', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
-
+#    # Performance by noise level
+#    x_name = 'noise'
+#    constraints = {'sample_size': 10}
+#    results = ls.load_results(small_n + big_n, x_name, y_name, constraints)
+#    for ending in ['png', 'pdf']:
+#        ls.plot_with_subplots(results, x_name, y_name, filename=f'images/main_{x_name}-{y_name}-SPEX.{ending}', log_x=True, log_y=y_name == 'shap_error', include_estimators=main_estimators, plot_mean=False)
+#
 # Tables
 for y_name in ['shap_error', 'weighted_error']:
     results = ls.load_results(small_n + big_n, 'sample_size', y_name, {'noise': 0, 'sample_size' : 8})
