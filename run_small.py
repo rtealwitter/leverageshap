@@ -17,8 +17,8 @@ sample_sizes = [int(n * mult) for mult in size_mults]
 #estimator_names = [name for name in list(ls.estimators.keys()) if name not in ['Tree SHAP', 'Permutation SHAP']]
 estimator_names = [
     'Regression MSR',
-#    'Leverage SHAP',
-#    'Fourier SHAP'
+    'Leverage SHAP',
+    'Fourier SHAP'
 ]
 
 mse_by_estimator_and_sample_size = {

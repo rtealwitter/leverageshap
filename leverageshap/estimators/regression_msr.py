@@ -70,12 +70,12 @@ class RegressionMSR:
                 mean_with = (
                     residual_values[idx_contained] * shapley_weights_by_size[coalitions_size[idx_contained]-1]
                     / coalitions_probability[idx_contained]
-                ).mean()
+                ).sum()
             if np.any(not_contained):
                 mean_without = (
                     residual_values[not_contained] * shapley_weights_by_size[coalitions_size[not_contained]]
                     / coalitions_probability[not_contained]
-                ).mean()
+                ).sum()
             phi[idx] += tree_phi[idx] + mean_with - mean_without
 
         return phi
