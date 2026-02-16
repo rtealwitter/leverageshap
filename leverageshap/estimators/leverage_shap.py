@@ -4,10 +4,11 @@ from .helpers import Game
 from scipy.special import comb as binom
 
 class LeverageSHAP:
-    def __init__(self, n, game, paired_sampling=True):
+    def __init__(self, n, game, paired_sampling=True, seed=42):
         self.game = game
         self.n = n
         self.paired_sampling = paired_sampling
+        self.seed = seed
     
     def shap_values(self, num_samples):
         # Sample
@@ -23,7 +24,7 @@ class LeverageSHAP:
 
         sampling_weights = np.ones(self.n-1)
 
-        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling)
+        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling, random_state=self.seed)
         sampler.sample(num_samples)
         coalition_matrix = sampler.coalitions_matrix
         coalition_sizes = np.sum(coalition_matrix, axis=1)
@@ -59,8 +60,9 @@ class LeverageSHAP:
         
         return AtA_inv_Atb + (v1 - v0) / self.n
 
-def leverage_shap(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
+def leverage_shap(baseline, explicand, model, num_samples, subtract_mobius1=False):
+    game = Game(model, baseline, explicand, subtract_mobius1=False)
     n = baseline.shape[1]
     estimator = LeverageSHAP(n, game, paired_sampling=True)
-    return estimator.shap_values(num_samples)
+    estimates = estimator.shap_values(num_samples)
+    return estimates
