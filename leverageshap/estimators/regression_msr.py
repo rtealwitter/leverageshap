@@ -80,8 +80,13 @@ class RegressionMSR:
 
         return phi
 
-def regression_msr(baseline, explicand, model, num_samples):
-    game = Game(model, baseline, explicand)
+def regression_msr(baseline, explicand, model, num_samples, subtract_mobius1=False, estimated_phi=None):
+    game = Game(model, baseline, explicand, subtract_mobius1=subtract_mobius1, estimated_phi=estimated_phi)
     n = baseline.shape[1]
     estimator = RegressionMSR(n, game, paired_sampling=True)
-    return estimator.shap_values(num_samples)
+    estimates = estimator.shap_values(num_samples)
+    if estimated_phi is not None:
+        return estimates + estimated_phi
+    if subtract_mobius1:
+        return estimates + game.singletons
+    return estimates
