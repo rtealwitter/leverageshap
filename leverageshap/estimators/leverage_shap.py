@@ -45,8 +45,8 @@ class LeverageSHAP:
 
         P = np.eye(self.n) - 1/self.n * np.ones((self.n, self.n))
 
-        Atb = P @ coalition_matrix.T @ np.diag(kernel_weights) @ values_adjusted
-        AtA = P @ coalition_matrix.T @ np.diag(kernel_weights) @ coalition_matrix @ P
+        Atb = P @ coalition_matrix.T @ (kernel_weights * values_adjusted)
+        AtA = P @ coalition_matrix.T @ (kernel_weights[:, np.newaxis] * coalition_matrix) @ P
 
         if np.linalg.cond(AtA) > 1 / np.finfo(AtA.dtype).eps and num_samples <= 3*self.n:
             sqrt_alpha = 1e-3
