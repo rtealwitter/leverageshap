@@ -1,6 +1,23 @@
 import numpy as np
 from tabulate import tabulate
 
+class Game:
+    def __init__(self, model, baseline, explicand):
+        self.model = model
+        self.baseline = baseline
+        self.explicand = explicand
+    
+    def value(self, S):
+        # S is a m by n binary matrix
+        inputs = self.baseline * (1 - S) + self.explicand * S
+        return self.model.predict(inputs)
+    
+    def edge_cases(self):
+        v0 = self.model.predict(self.baseline)
+        v1 = self.model.predict(self.explicand)
+        return v0, v1
+
+
 def fancy_round(x, precision=3):
     return float(np.format_float_positional(x, precision=precision, unique=False, fractional=False, trim='k'))
 
