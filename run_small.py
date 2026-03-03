@@ -2,58 +2,85 @@ import xgboost as xgb
 import leverageshap as ls
 import numpy as np
 
-subtract_mobius1 = False
+def run_shap_experiment(dataset, size_mults, estimator_names, seed=42, num_reps=10, verbose=False):
+    # Load dataset
+    X, y = ls.load_dataset(dataset)
+    n = X.shape[1]
+    
+    # Calculate exact sample sizes based on multipliers
+    sample_sizes = [int(n * mult) for mult in size_mults]
 
-dataset = 'Communities'
-reps = 3
-size_mults = [2, 8, 64, 256]
+    if verbose:
+        print(f"Parameters: dataset={dataset}, n={n}, seed={seed}, num_reps={num_reps}\n")
 
-X, y = ls.load_dataset(dataset)
-n = X.shape[1]
+    # Initialize performance tracking dict: estimator -> sample_size -> [mses]
+    performance = {
+        name: {sample_size: [] for sample_size in sample_sizes} 
+        for name in estimator_names
+    }
 
-sample_sizes = [int(n * mult) for mult in size_mults]
+    for rep in range(num_reps):
+        # Generate a distinct, reproducible seed for this repetition
+        seed_rep = int(seed + 1234567 * rep)
+        
+        # Fit model (passed random_state for full reproducibility)
+        model = xgb.XGBRegressor(n_estimators=100, max_depth=4, random_state=seed_rep)
+        model.fit(X, y)
 
-# Collect all estimators exported by the package except 'Tree SHAP' (used as ground truth)
-#estimator_names = [name for name in list(ls.estimators.keys()) if name not in ['Tree SHAP', 'Permutation SHAP']]
-estimator_names = [
-    'Regression MSR',
-    'Leverage SHAP',
-#    'Fourier SHAP'
-]
+        # Get inputs for this repetition using the rep seed
+        baseline, explicand = ls.load_input(X, seed=seed_rep)
 
-mse_by_estimator_and_sample_size = {
-    name: {sample_size : [] for sample_size in sample_sizes} for name in estimator_names
-}
+        # Compute ground truth using Tree SHAP
+        true_shap = ls.estimators['Tree SHAP'](baseline, explicand, model, None).flatten()
 
-mse_by_estimator_and_sample_size['Lev->Reg MSR'] = {sample_size : [] for sample_size in sample_sizes}
+        for estimator_name in estimator_names:
+            estimator = ls.estimators[estimator_name]
+            
+            for sample_size in sample_sizes:
+                # Run the mechanism
+                estimated_shap = estimator(baseline, explicand, model, sample_size).flatten()
 
-for i in range(reps):
-    model = xgb.XGBRegressor(n_estimators=100, max_depth=4)
-    model.fit(X, y)
+                # Calculate standard MSE
+                mse = np.mean((true_shap - estimated_shap)**2) / np.mean(true_shap**2)
+                
+                # Store the result
+                performance[estimator_name][sample_size].append(mse)
 
-    baseline, explicand = ls.load_input(X, seed=i)
+    if verbose:
+        # Build dynamic header based on the estimators provided
+        header = f"{'Sample Size':<12s}"
+        for est in estimator_names:
+            col_name = f"{est} (Avg ± Std [Med])"
+            header += f" | {col_name:<30s}"
+            
+        print(f"\n{header}")
+        print("-" * len(header))
+        
+        # Print a row for each sample size
+        for sample_size in sample_sizes:
+            row_str = f"{sample_size:<12d}"
+            for est in estimator_names:
+                mses = performance[est][sample_size]
+                avg_mse = np.mean(mses)
+                std_mse = np.std(mses)
+                med_mse = np.median(mses)
+                
+                # Combine metrics into a single readable string per cell
+                cell_str = f"{avg_mse:.1e} ± {std_mse:.1e} [{med_mse:.1e}]"
+                row_str += f" | {cell_str:<30s}"
+            print(row_str)
 
-    true_shap = ls.estimators['Tree SHAP'](baseline, explicand, model, None).flatten()
+    return performance
 
-    for estimator_name in estimator_names:
-        estimator = ls.estimators[estimator_name]
-        for sample_size in sample_sizes:            
-            estimated_shap = estimator(baseline, explicand, model, sample_size, subtract_mobius1=subtract_mobius1).flatten()
-            mse = np.mean((true_shap - estimated_shap)**2 / np.mean(true_shap**2))
 
-            mse_by_estimator_and_sample_size[estimator_name][sample_size].append(mse)
+estimator_names = ['Kernel SHAP', 'Leverage SHAP', 'SNGD']
+size_mults = [4, 8, 16, 32, 64, 128]
 
-    lev_estimator = ls.estimators['Leverage SHAP']
-    regmsr_estimator = ls.estimators['Regression MSR']
-    for sample_size in sample_sizes:
-        lev_estimated_shap = lev_estimator(baseline, explicand, model, sample_size, subtract_mobius1=subtract_mobius1).flatten()
-        regmsr_estimated_shap = regmsr_estimator(baseline, explicand, model, sample_size, subtract_mobius1=subtract_mobius1, estimated_phi=lev_estimated_shap).flatten()
-        mse_lev_regmsr = np.mean((true_shap - regmsr_estimated_shap)**2 / np.mean(true_shap**2))
-        mse_by_estimator_and_sample_size['Lev->Reg MSR'][sample_size].append(mse_lev_regmsr)
-
-for estimator_name in mse_by_estimator_and_sample_size.keys():
-    for sample_size in sample_sizes:
-        mses = mse_by_estimator_and_sample_size[estimator_name][sample_size]
-        mean_mse = np.mean(mses)
-        print(f'{dataset}, Estimator: {estimator_name}, n: {n}, m: {sample_size}, Mean MSE: {mean_mse:.3g}')
-
+performance = run_shap_experiment(
+    dataset='Diabetes',
+    size_mults=size_mults,
+    estimator_names=estimator_names,
+    seed=42,
+    num_reps=10,
+    verbose=True
+)

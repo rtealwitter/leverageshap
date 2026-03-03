@@ -1,5 +1,6 @@
 from .official_shap import *
 from .leverage_shap import *
+from .sngd import *
 from .regression_msr import *
 from .new import *
 
@@ -7,6 +8,7 @@ estimators = {
     'Kernel SHAP': official_kernel_shap,
     'Permutation SHAP': official_permutation_shap,
     'Leverage SHAP': leverage_shap,
+    'SNGD': leverage_shap_sngd,
     'Tree SHAP': official_tree_shap,
     'Regression MSR': regression_msr,
     # Fourier SHAP
