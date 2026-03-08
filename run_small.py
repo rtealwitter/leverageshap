@@ -74,10 +74,10 @@ def run_shap_experiment(dataset, size_mults, estimator_names, seed=42, num_reps=
 
 
 estimator_names = ['Kernel SHAP', 'Leverage SHAP', 'SNGD']
-size_mults = [4, 8, 16, 32, 64, 128]
+size_mults = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 performance = run_shap_experiment(
-    dataset='Diabetes',
+    dataset='NHANES',
     size_mults=size_mults,
     estimator_names=estimator_names,
     seed=42,
