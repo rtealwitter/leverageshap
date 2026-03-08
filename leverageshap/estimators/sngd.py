@@ -11,26 +11,16 @@ class LeverageSHAPSNGD:
         self.seed = seed
         self.P = np.eye(n) - np.ones((n, n)) / n
 
-    def _get_batch_schedule(self, num_samples):
-        min_batch = 3 *self.n
-        if num_samples < min_batch:
-            return [num_samples]
-            
-        T = num_samples // min_batch
-        base_batch = num_samples // T
-        remainder = num_samples % T
-        
-        return [base_batch + (1 if i < remainder else 0) for i in range(T)]
-
-    def _sample_coalitions(self, batch_size, random_state):
+    def _sample_valid_coalitions(self, num_samples):
+        """Samples all coalitions upfront and filters valid subsets."""
         sampling_weights = np.ones(self.n - 1)
         sampler = CoalitionSampler(
             n_players=self.n, 
             sampling_weights=sampling_weights, 
             pairing_trick=self.paired_sampling, 
-            random_state=random_state
+            random_state=self.seed
         )
-        sampler.sample(batch_size)
+        sampler.sample(num_samples)
         
         Z = sampler.coalitions_matrix
         sizes = np.sum(Z, axis=1)
@@ -39,62 +29,82 @@ class LeverageSHAPSNGD:
         valid = (sizes > 0) & (sizes < self.n)
         return Z[valid], sizes[valid], probs[valid]
 
-    def _compute_sketched_gradient_and_scale(self, Z, sizes, probs, x_t):
-        values = self.game(Z)
-        v0, v1 = self.game.edge_cases()
-        b_t = values - (v1 - v0) * sizes / self.n
+    def _get_batch_schedule(self, num_valid_samples):
+        """Partitions the total valid samples into dynamic batch sizes."""
+        min_batch = 3 * self.n
+        if num_valid_samples < min_batch:
+            return [num_valid_samples]
+            
+        T = num_valid_samples // min_batch
+        base_batch = num_valid_samples // T
+        remainder = num_valid_samples % T
+        
+        return [base_batch + (1 if i < remainder else 0) for i in range(T)]
 
+    def shap_values(self, num_samples, eta_0=1.0):
+        # 1. Sample all data upfront
+        Z, sizes, probs = self._sample_valid_coalitions(num_samples)
+        num_valid = len(sizes)
+
+        v0, v1 = self.game.edge_cases()
+        
+        if num_valid == 0:
+            return np.zeros(self.n) + (v1 - v0) / self.n
+
+        # 2. Precompute all targets and weights upfront
+        values = self.game(Z)
+        b = values - (v1 - v0) * sizes / self.n
+        
         regression_weights = 1 / (binom(self.n, sizes) * sizes * (self.n - sizes))
         kernel_weights = regression_weights / probs
 
-        # Apply preconditioner P to x_t to ensure we evaluate on the centered subspace
-        predictions = Z @ (self.P @ x_t)
-        residuals = predictions - b_t
-        
-        # 1. Unscaled Sketched Gradient
-        # Using element-wise multiplication (O(m)) to avoid massive diagonal matrices
-        g_raw = self.P @ Z.T @ (kernel_weights * residuals)
-        
-        # 2. Empirical Trace of the Sketched Hessian
-        # The trace of z^T P z is k(n-k)/n. We sum this over the batch weighted by kernel_weights.
-        trace_H = np.sum(kernel_weights * sizes * (self.n - sizes) / self.n)
-        
-        # 3. Scale-Invariant Preconditioner
-        # Average eigenvalue in the active (n-1) dimensional subspace
-        alpha = trace_H / (self.n - 1)
-        
-        # Dividing by alpha makes this a true, scale-invariant Stochastic Newton step
-        g_t = g_raw / alpha
-        
-        return g_t
-
-    def shap_values(self, num_samples, eta_0=1.0):
-        batch_sizes = self._get_batch_schedule(num_samples)
-        v0, v1 = self.game.edge_cases()
+        # 3. Generate batch partition schedule
+        batch_sizes = self._get_batch_schedule(num_valid)
         
         x_t = np.zeros(self.n)
         x_avg = np.zeros(self.n)
         update_count = 0
         
-        for t, batch_size in enumerate(batch_sizes):
-            Z, sizes, probs = self._sample_coalitions(batch_size, random_state=self.seed + t)
+        # 4. Iteration Loop
+        start_idx = 0
+        for batch_size in batch_sizes:
+            end_idx = start_idx + batch_size
             
-            if len(sizes) == 0:
+            # Slice the precomputed arrays for the current batch
+            Z_batch = Z[start_idx:end_idx]
+            sizes_batch = sizes[start_idx:end_idx]
+            b_batch = b[start_idx:end_idx]
+            kw_batch = kernel_weights[start_idx:end_idx]
+            
+            start_idx = end_idx  # Update cursor for the next iteration
+            
+            if len(sizes_batch) == 0:
+                continue
+
+            # Compute Unscaled Sketched Gradient
+            predictions = Z_batch @ (self.P @ x_t)
+            residuals = predictions - b_batch
+            g_raw = self.P @ Z_batch.T @ (kw_batch * residuals)
+            
+            # Compute Scale-Invariant Preconditioner
+            trace_H = np.sum(kw_batch * sizes_batch * (self.n - sizes_batch) / self.n)
+            
+            if trace_H == 0:
                 continue
                 
-            g_t = self._compute_sketched_gradient_and_scale(Z, sizes, probs, x_t)
+            alpha = trace_H / (self.n - 1)
+            g_t = g_raw / alpha
             
+            # Update Step
             update_count += 1
-            eta_t = eta_0 #/ np.sqrt(update_count)
+            eta_t = eta_0 / np.sqrt(update_count)
             
-            # The gradient is now optimally scaled, taking a perfect Newton step magnitude
             x_t = x_t - eta_t * g_t
             
             # Polyak-Ruppert Averaging
             x_avg = (x_avg * (update_count - 1) + x_t) / update_count
 
-        return x_t + (v1 - v0) / self.n
-
+        return x_avg + (v1 - v0) / self.n
 
 def leverage_shap_sngd(baseline, explicand, model, num_samples, subtract_mobius1=False):
     game = Game(model, baseline, explicand, subtract_mobius1=subtract_mobius1)
