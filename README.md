@@ -29,7 +29,7 @@ baseline, explicand = ls.load_input(X)
 # Since the model is a tree model, we can compute true SHAP values using Tree SHAP
 true_shap_values = shap.TreeExplainer(model).shap_values(explicand, baseline)
 
-estimated_shap_values = ls.estimators['Leverage SHAP'](baseline, explicand, model, sample_size=10*n)
+estimated_shap_values = ls.estimators['Leverage SHAP'](baseline, explicand, model, num_samples=10*n)
 
 print("True SHAP values: ", true_shap_values)
 print("Estimated SHAP values from Leverage SHAP: ", estimated_shap_values)
@@ -37,9 +37,11 @@ print("Estimated SHAP values from Leverage SHAP: ", estimated_shap_values)
 
 ### Benchmarking
 
-This codebase implements Leverage SHAP and a benchmarking harness (`leverageshap/benchmark.py`, driven by `run.py --benchmark`) that compares it against the Kernel SHAP and Permutation SHAP implementations in the [SHAP](https://github.com/slundberg/shap) library, with Tree SHAP as ground truth. The estimator labeled "Kernel SHAP" in the output is `shap.KernelExplainer` with paired sampling and exhaustive enumeration of small coalition sizes, i.e. *Optimized Kernel SHAP* in the paper's terminology. Permutation SHAP is given the same budget of `m` model evaluations through `max_evals`; budgets below `2n+1` are raised to `2n+1` with a printed warning.
+This codebase implements Leverage SHAP and a benchmarking harness (`leverageshap/benchmark.py`, driven by `run.py --benchmark`) that compares it against Kernel SHAP baselines and the Permutation SHAP implementation in the [SHAP](https://github.com/slundberg/shap) library, with Tree SHAP as ground truth. Two Kernel SHAP baselines are registered in `ls.estimators`: `'Kernel SHAP'` is the paper's own regression-based implementation, sampling coalitions with Kernel SHAP's weights (no paired sampling, no leverage-score sampling; see `leverageshap/estimators/ablations.py`), while `'Optimized Kernel SHAP'` is `shap.KernelExplainer` with paired sampling and exhaustive enumeration of small coalition sizes -- what the paper calls *Optimized Kernel SHAP*. Permutation SHAP is given the same budget of `m` model evaluations through `max_evals`; budgets below `2n+1` are raised to `2n+1` with a printed warning.
 
 Leverage SHAP is also available in the [shapiq](https://github.com/mmschlk/shapiq) library. Note that shapiq's Kernel SHAP shares the projected regression solution and sampler with Leverage SHAP, so results from shapiq do not reflect the official Kernel SHAP algorithm.
+
+`ls.estimators` also exposes the rest of the paper's ablation grid -- `'Kernel SHAP Paired'`, `'Leverage SHAP (Unpaired)'`, `'Leverage SHAP wo Bernoulli'`, and `'Leverage SHAP (Binomial)'` -- which independently toggle paired sampling, leverage-score sampling, and Bernoulli (without-replacement) sampling to isolate their effect on accuracy. These, together with `'Kernel SHAP'` above, are paper-era estimators restored from commit `0de0a80` (the codebase's state before the released package was simplified); they exist to reproduce the paper's ablation and gamma experiments and are not recommended for new use -- for that, use `'Leverage SHAP'` or `'Optimized Kernel SHAP'`.
 
 ### Credit
 

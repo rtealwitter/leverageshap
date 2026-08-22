@@ -69,3 +69,15 @@ def leverage_shap(baseline, explicand, model, num_samples, random_state=None):
     n = baseline.shape[1]
     estimator = LeverageSHAP(n, game, paired_sampling=True, random_state=random_state)
     return estimator.shap_values(num_samples)
+
+def leverage_shap_unpaired(baseline, explicand, model, num_samples, random_state=None):
+    # Identical to leverage_shap() except paired_sampling=False. Restored for
+    # the paper's "Leverage SHAP (Unpaired)" ablation entry (see
+    # leverageshap/estimators/ablations.py header for why the old
+    # `leverage_shap_wo_paired` from commit 0de0a80 is not used instead: it
+    # also sampled with replacement, differing from Leverage SHAP in two ways
+    # rather than one).
+    game = Game(model, baseline, explicand)
+    n = baseline.shape[1]
+    estimator = LeverageSHAP(n, game, paired_sampling=False, random_state=random_state)
+    return estimator.shap_values(num_samples)

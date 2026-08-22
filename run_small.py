@@ -73,7 +73,7 @@ def run_shap_experiment(dataset, size_mults, estimator_names, seed=42, num_reps=
     return performance
 
 
-estimator_names = ['Kernel SHAP', 'Leverage SHAP']
+estimator_names = ['Optimized Kernel SHAP', 'Leverage SHAP']
 size_mults = [0.5, 2, 4, 8, 16]
 
 performance = run_shap_experiment(

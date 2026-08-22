@@ -1,5 +1,6 @@
 import numpy as np
 from tabulate import tabulate
+from .datasets import load_dataset
 
 class Game:
     def __init__(self, model, baseline, explicand):
@@ -158,3 +159,71 @@ def one_big_table_old(results, filename, include_color=True):
             f.write(to_print + '\n')
         f.write('\\bottomrule\n')
         f.write('\\end{tabular}}')
+
+def error_ratio_table(results, multipliers, filename, numerator='Leverage SHAP', denominator='Optimized Kernel SHAP'):
+    # NEW (not in 0de0a80): reproduces overleaf_paper's Table \ref{tab:error2kshap}
+    # (Appendix "Error Relative to Optimized Kernel SHAP"): one row per
+    # dataset, one column per sample-size multiplier m/n, each cell the
+    # ratio of `numerator`'s mean shap_error to `denominator`'s at that
+    # sample size. `results` is exactly what `ls.load_results(datasets,
+    # 'sample_size', 'shap_error', {'noise': 0}, ...)` returns, i.e.
+    # results[dataset][estimator][sample_size] -> list of shap_error values
+    # across runs (unconstrained sample_size, so every recorded multiplier
+    # is present, keyed by the actual int sample size).
+    #
+    # Per the paper's caption: once m >= 2^n every non-trivial coalition is
+    # enumerated, so both estimators recover Shapley values exact to machine
+    # precision and the ratio is defined to be exactly 1 (computing it from
+    # the data directly would instead divide two near-zero floating point
+    # errors and produce meaningless noise). This threshold is applied
+    # explicitly below rather than inferred from the data, and matches the
+    # published table exactly (verified against overleaf_paper/tables/
+    # error ratios: e.g. California n=8 is 1.00 starting at the 40n=320>=256
+    # column, Diabetes n=10 only at 160n=1600>=1024, Adult n=12 never
+    # reaches 1.00 since even 160n=1920 < 4096).
+    rows = []
+    for dataset in results:
+        X, y = load_dataset(dataset)
+        n = X.shape[1]
+        row = [dataset]
+        for mult in multipliers:
+            sample_size = int(mult * n)
+            if sample_size >= 2**n:
+                ratio = 1.0
+            else:
+                try:
+                    num_vals = results[dataset][numerator][sample_size]
+                    den_vals = results[dataset][denominator][sample_size]
+                    ratio = np.mean(num_vals) / np.mean(den_vals)
+                except KeyError:
+                    ratio = float('nan')
+            row.append(ratio)
+        rows.append(row)
+
+    # The paper's caption quotes one pooled scalar ("averaging over all non-unit
+    # entries, Leverage SHAP achieved 50.2% of the error"); write it (and the
+    # per-column version) to a sidecar text file next to the table so the
+    # caption numbers can be regenerated without editing the table itself.
+    non_unit = [v for row in rows for v in row[1:] if not np.isnan(v) and not np.isclose(v, 1.0)]
+    with open(filename.replace('.tex', '_summary.txt'), 'w') as f:
+        f.write(f'pooled mean of non-unit ratios: {np.mean(non_unit):.4f} over {len(non_unit)} entries\n')
+        f.write(f'pooled median of non-unit ratios: {np.median(non_unit):.4f}\n')
+        f.write(f'min / max non-unit ratio: {np.min(non_unit):.4f} / {np.max(non_unit):.4f}\n')
+        for col, mult in enumerate(multipliers, start=1):
+            col_vals = [row[col] for row in rows if not np.isnan(row[col]) and not np.isclose(row[col], 1.0)]
+            f.write(f'{mult}n: mean of non-unit ratios {np.mean(col_vals):.4f} over {len(col_vals)} datasets\n')
+        for row in rows:
+            f.write(row[0] + ': ' + ', '.join(f'{v:.4f}' for v in row[1:]) + '\n')
+
+    def fmt(v):
+        return '--' if np.isnan(v) else str(fancy_round(v))
+
+    with open(filename, 'w') as f:
+        f.write('\\begin{tabular}{l' + 'c' * len(multipliers) + '}\n')
+        f.write('\\toprule\n')
+        f.write('Dataset & ' + ' & '.join([f'${m}n$' for m in multipliers]) + ' \\\\\n')
+        f.write('\\midrule\n')
+        for row in rows:
+            f.write(row[0] + ' & ' + ' & '.join(fmt(v) for v in row[1:]) + ' \\\\\n')
+        f.write('\\bottomrule\n')
+        f.write('\\end{tabular}\n')
