@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.ticker import NullFormatter
 import numpy as np
 
 from .estimators import estimators
@@ -52,7 +53,11 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
         if '_' in dataset:
             dataset, _ = dataset.split('_')
         ax.set_title(rf'{dataset} $(n = {n})$')
-        if log_x: ax.set_xscale('log')
+        if log_x:
+            ax.set_xscale('log')
+            # matplotlib >= 3.10 labels minor log ticks on short axes (e.g. IRIS, m in [20, 640]) and the
+            # labels collide; the published figures showed major ticks only.
+            ax.xaxis.set_minor_formatter(NullFormatter())
         if log_y: ax.set_yscale('log') 
         if 2**n < ax.get_xlim()[1] and 2**n > ax.get_xlim()[0]:
             ax.axvline(x=2**n, color='r', linestyle='solid')

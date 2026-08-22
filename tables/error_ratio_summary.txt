@@ -1,0 +1,17 @@
+pooled mean of non-unit ratios: 0.5005 over 38 entries
+pooled median of non-unit ratios: 0.5927
+min / max non-unit ratio: 0.0471 / 0.7532
+5n: mean of non-unit ratios 0.4453 over 7 datasets
+10n: mean of non-unit ratios 0.4506 over 7 datasets
+20n: mean of non-unit ratios 0.4578 over 7 datasets
+40n: mean of non-unit ratios 0.5545 over 6 datasets
+80n: mean of non-unit ratios 0.5441 over 6 datasets
+160n: mean of non-unit ratios 0.5905 over 5 datasets
+IRIS: 1.0000, 1.0000, 1.0000, 1.0000, 1.0000, 1.0000
+California: 0.0894, 0.0824, 0.0471, 1.0000, 1.0000, 1.0000
+Diabetes: 0.1837, 0.2873, 0.2607, 0.1812, 0.1506, 1.0000
+Adult: 0.5271, 0.3997, 0.3283, 0.4394, 0.3446, 0.2107
+Correlated: 0.5878, 0.5680, 0.6600, 0.6574, 0.7265, 0.6737
+Independent: 0.4917, 0.5073, 0.6253, 0.6536, 0.6182, 0.6508
+NHANES: 0.7063, 0.7083, 0.6853, 0.7360, 0.7532, 0.7198
+Communities: 0.5309, 0.6008, 0.5976, 0.6594, 0.6712, 0.6975

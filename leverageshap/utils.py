@@ -22,6 +22,14 @@ class Game:
 def fancy_round(x, precision=3):
     return float(np.format_float_positional(x, precision=precision, unique=False, fractional=False, trim='k'))
 
+def format_sig(x, precision=3):
+    """Format x with `precision` significant figures, keeping trailing zeros (1.0 -> '1.00', 0.4 -> '0.400')."""
+    if x == 0 or not np.isfinite(x):
+        return str(x)
+    rounded = float(f'{x:.{precision}g}')
+    decimals = max(precision - 1 - int(np.floor(np.log10(abs(rounded)))), 0)
+    return f'{rounded:.{decimals}f}'
+
 def benchmark_table(results, filename=None, print_md=True, include_color=True):
     table = []
     for method in results:
@@ -174,7 +182,7 @@ def error_ratio_table(results, multipliers, filename, numerator='Leverage SHAP',
             f.write(row[0] + ': ' + ', '.join(f'{v:.4f}' for v in row[1:]) + '\n')
 
     def fmt(v):
-        return '--' if np.isnan(v) else str(fancy_round(v))
+        return '--' if np.isnan(v) else format_sig(v)
 
     with open(filename, 'w') as f:
         f.write('\\begin{tabular}{l' + 'c' * len(multipliers) + '}\n')

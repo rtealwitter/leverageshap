@@ -1,8 +1,13 @@
 \begin{tabular}{lllll}
   \toprule
   \textbf{Method} & \textbf{Mean} & \textbf{1st Quartile} & \textbf{2nd Quartile} & \textbf{3rd Quartile} \\ \midrule 
-Kernel SHAP & \cellcolor{gold!60}5.35e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.64e-10\\
-Permutation SHAP & \cellcolor{bronze!60}5.76e-03 & \cellcolor{bronze!60}5.57e-11 & \cellcolor{bronze!60}3.14e-08 & \cellcolor{bronze!60}1.39e-04\\
-Leverage SHAP & \cellcolor{gold!60}5.35e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.64e-10\\
+Kernel SHAP & 3.26e-02 & 1.03e-05 & 2.59e-04 & 3.40e-02\\
+Kernel SHAP Paired & 1.85e-03 & 1.86e-10 & 1.29e-07 & 1.66e-04\\
+Optimized Kernel SHAP & \cellcolor{gold!60}4.84e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.69e-10\\
+Permutation SHAP & 5.57e-03 & 1.03e-09 & 1.26e-07 & 6.17e-04\\
+Leverage SHAP & \cellcolor{gold!60}4.84e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.69e-10\\
+Leverage SHAP (Unpaired) & \cellcolor{gold!60}4.84e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.69e-10\\
+Leverage SHAP wo Bernoulli & 1.36e-03 & 3.07e-10 & 1.29e-07 & 1.85e-04\\
+Leverage SHAP (Binomial) & \cellcolor{gold!60}4.84e-09 & \cellcolor{gold!60}1.66e-13 & \cellcolor{gold!60}2.17e-13 & \cellcolor{gold!60}2.69e-10\\
 \bottomrule
 \end{tabular}

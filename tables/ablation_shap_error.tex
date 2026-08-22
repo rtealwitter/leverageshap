@@ -1,0 +1,55 @@
+\resizebox{\linewidth}{!}{ 
+\begin{tabular} {lcccccccc}
+\toprule
+ & \textbf{IRIS} & \textbf{California} & \textbf{Diabetes} & \textbf{Adult} & \textbf{Correlated} & \textbf{Independent} & \textbf{NHANES} & \textbf{Communities} \\ 
+\midrule
+\addlinespace[1ex] 
+\textbf{Kernel SHAP} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & 0.0326 & 0.03 & 0.0592 & 0.0596 & 0.0471 & 0.0269 & 0.0542 & 0.118 \\ 
+\hspace{7pt}1st Quartile & 1.03e-05 & 0.00689 & 0.0123 & 0.0196 & 0.0264 & 0.0142 & 0.0175 & 0.0578 \\ 
+\hspace{7pt}2nd Quartile & 0.000259 & 0.0177 & 0.0237 & 0.0412 & 0.0405 & 0.0207 & 0.038 & 0.0876 \\ 
+\hspace{7pt}3rd Quartile & 0.034 & 0.0417 & 0.0545 & 0.0844 & 0.0556 & 0.0315 & 0.0789 & 0.139 \\ 
+\addlinespace[1ex] 
+\textbf{Kernel SHAP Paired} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & 0.00185 & 0.000688 & 0.00376 & 0.00635 & 0.0105 & 0.00425 & 0.00772 & 0.0257 \\ 
+\hspace{7pt}1st Quartile & 1.86e-10 & \cellcolor{bronze!60}8.65e-05 & 0.000417 & 0.000748 & 0.00431 & 0.00141 & 0.00151 & 0.0108 \\ 
+\hspace{7pt}2nd Quartile & 1.29e-07 & 0.000353 & 0.00192 & 0.00163 & 0.00775 & 0.0037 & 0.00414 & 0.0175 \\ 
+\hspace{7pt}3rd Quartile & 0.000166 & 0.000877 & 0.00563 & 0.00451 & 0.0137 & 0.00654 & 0.00789 & 0.0361 \\ 
+\addlinespace[1ex] 
+\textbf{Optimized Kernel SHAP} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & 4.84e-09 & 0.00301 & 0.00791 & 0.0104 & 0.0117 & 0.00507 & 0.00713 & 0.0231 \\ 
+\hspace{7pt}1st Quartile & \cellcolor{gold!60}1.66e-13 & 0.000805 & 0.00147 & 0.00309 & 0.00432 & 0.00214 & 0.00151 & 0.00879 \\ 
+\hspace{7pt}2nd Quartile & \cellcolor{bronze!60}2.17e-13 & 0.00205 & 0.00367 & 0.00491 & 0.00848 & 0.00459 & 0.00408 & 0.0161 \\ 
+\hspace{7pt}3rd Quartile & 2.69e-10 & 0.00391 & 0.00806 & 0.0109 & 0.0159 & 0.00691 & 0.00827 & 0.0301 \\ 
+\addlinespace[1ex] 
+\textbf{Permutation SHAP} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & 0.00557 & 0.00131 & 0.00853 & 0.0132 & 0.0119 & 0.00529 & 0.00569 & 0.0291 \\ 
+\hspace{7pt}1st Quartile & 1.03e-09 & 0.000175 & 0.000689 & 0.00143 & 0.00306 & 0.00123 & \cellcolor{gold!60}0.000652 & 0.0109 \\ 
+\hspace{7pt}2nd Quartile & 1.26e-07 & 0.000658 & 0.00325 & 0.00288 & 0.00762 & 0.00324 & 0.00284 & 0.017 \\ 
+\hspace{7pt}3rd Quartile & 0.000617 & 0.00214 & 0.00869 & 0.00619 & 0.0171 & 0.007 & 0.00639 & 0.0381 \\ 
+\addlinespace[1ex] 
+\textbf{Leverage SHAP} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & \cellcolor{silver!60}4.84e-09 & \cellcolor{gold!60}0.000249 & \cellcolor{silver!60}0.00227 & \cellcolor{gold!60}0.00416 & \cellcolor{bronze!60}0.00662 & \cellcolor{gold!60}0.00257 & \cellcolor{bronze!60}0.00505 & \cellcolor{bronze!60}0.0139 \\ 
+\hspace{7pt}1st Quartile & \cellcolor{silver!60}1.66e-13 & \cellcolor{gold!60}4.23e-05 & \cellcolor{silver!60}0.000202 & \cellcolor{gold!60}0.000424 & \cellcolor{gold!60}0.00223 & \cellcolor{silver!60}0.000936 & \cellcolor{bronze!60}0.000816 & \cellcolor{gold!60}0.00575 \\ 
+\hspace{7pt}2nd Quartile & \cellcolor{silver!60}2.17e-13 & \cellcolor{gold!60}0.000119 & \cellcolor{gold!60}0.000991 & \cellcolor{gold!60}0.00102 & \cellcolor{gold!60}0.00484 & \cellcolor{silver!60}0.00233 & \cellcolor{silver!60}0.00232 & \cellcolor{gold!60}0.00916 \\ 
+\hspace{7pt}3rd Quartile & \cellcolor{gold!60}2.69e-10 & \cellcolor{gold!60}0.000277 & \cellcolor{gold!60}0.00259 & \cellcolor{gold!60}0.00362 & \cellcolor{gold!60}0.00865 & \cellcolor{silver!60}0.00378 & \cellcolor{gold!60}0.00407 & \cellcolor{bronze!60}0.0213 \\ 
+\addlinespace[1ex] 
+\textbf{Leverage SHAP (Unpaired)} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & \cellcolor{bronze!60}4.84e-09 & 0.0124 & 0.0328 & 0.0425 & 0.0308 & 0.0161 & 0.0332 & 0.0672 \\ 
+\hspace{7pt}1st Quartile & \cellcolor{bronze!60}1.66e-13 & 0.0031 & 0.00576 & 0.0121 & 0.0178 & 0.0087 & 0.00887 & 0.0333 \\ 
+\hspace{7pt}2nd Quartile & 2.17e-13 & 0.00775 & 0.0127 & 0.0274 & 0.0268 & 0.0125 & 0.0234 & 0.0509 \\ 
+\hspace{7pt}3rd Quartile & \cellcolor{silver!60}2.69e-10 & 0.0187 & 0.0256 & 0.0468 & 0.0351 & 0.0197 & 0.0485 & 0.0858 \\ 
+\addlinespace[1ex] 
+\textbf{Leverage SHAP wo Bernoulli} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & 0.00136 & \cellcolor{bronze!60}0.000604 & \cellcolor{bronze!60}0.0036 & \cellcolor{silver!60}0.00474 & \cellcolor{gold!60}0.00635 & \cellcolor{bronze!60}0.00263 & \cellcolor{silver!60}0.00465 & \cellcolor{gold!60}0.0136 \\ 
+\hspace{7pt}1st Quartile & 3.07e-10 & 0.000108 & \cellcolor{bronze!60}0.000327 & \cellcolor{bronze!60}0.000584 & \cellcolor{silver!60}0.00249 & \cellcolor{gold!60}0.000787 & 0.000851 & \cellcolor{silver!60}0.00575 \\ 
+\hspace{7pt}2nd Quartile & 1.29e-07 & \cellcolor{bronze!60}0.000259 & \cellcolor{bronze!60}0.00159 & \cellcolor{silver!60}0.00121 & \cellcolor{silver!60}0.00492 & \cellcolor{bronze!60}0.00241 & \cellcolor{bronze!60}0.00247 & \cellcolor{bronze!60}0.00996 \\ 
+\hspace{7pt}3rd Quartile & 0.000185 & \cellcolor{bronze!60}0.000683 & \cellcolor{bronze!60}0.00499 & \cellcolor{bronze!60}0.00395 & \cellcolor{bronze!60}0.00898 & \cellcolor{bronze!60}0.00386 & \cellcolor{bronze!60}0.00437 & \cellcolor{silver!60}0.0187 \\ 
+\addlinespace[1ex] 
+\textbf{Leverage SHAP (Binomial)} &  &  &  &  &  &  &  &  \\ 
+\hspace{7pt}Mean & \cellcolor{gold!60}4.84e-09 & \cellcolor{silver!60}0.000258 & \cellcolor{gold!60}0.00224 & \cellcolor{bronze!60}0.00553 & \cellcolor{silver!60}0.00641 & \cellcolor{silver!60}0.00258 & \cellcolor{gold!60}0.00444 & \cellcolor{silver!60}0.0137 \\ 
+\hspace{7pt}1st Quartile & 1.66e-13 & \cellcolor{silver!60}4.77e-05 & \cellcolor{gold!60}0.000191 & \cellcolor{silver!60}0.000474 & \cellcolor{bronze!60}0.00257 & \cellcolor{bronze!60}0.000937 & \cellcolor{silver!60}0.000771 & \cellcolor{bronze!60}0.00606 \\ 
+\hspace{7pt}2nd Quartile & \cellcolor{gold!60}2.17e-13 & \cellcolor{silver!60}0.000164 & \cellcolor{silver!60}0.00107 & \cellcolor{bronze!60}0.00124 & \cellcolor{bronze!60}0.00508 & \cellcolor{gold!60}0.00221 & \cellcolor{gold!60}0.00213 & \cellcolor{silver!60}0.00978 \\ 
+\hspace{7pt}3rd Quartile & \cellcolor{bronze!60}2.69e-10 & \cellcolor{silver!60}0.000364 & \cellcolor{silver!60}0.0027 & \cellcolor{silver!60}0.00391 & \cellcolor{silver!60}0.00892 & \cellcolor{gold!60}0.00363 & \cellcolor{silver!60}0.00418 & \cellcolor{gold!60}0.0179 \\ 
+\bottomrule
+\end{tabular}}
