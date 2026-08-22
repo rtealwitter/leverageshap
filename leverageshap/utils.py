@@ -118,48 +118,6 @@ def one_big_table(results, filename, error_type):
         f.write('\\bottomrule\n')
         f.write('\\end{tabular}}')            
         
-def one_big_table_old(results, filename, include_color=True):
-    # Each row is a dataset
-    # There are five groups of columns: one for each method
-    # Each group has 4 columns: mean, 1st quartile, 2nd quartile, 3rd quartile
-    table = []
-    for dataset in results:
-        row = [dataset]
-        for method in results[dataset]:
-            values = np.array(results[dataset][method][list(results[dataset][method].keys())[0]])
-            mean = np.mean(values)
-            median = np.median(values)
-            upper = np.percentile(values, 75)
-            lower = np.percentile(values, 25)
-            to_add = [mean, lower, median, upper]
-            row += [fancy_round(x) for x in to_add]
-        table.append(row)
-
-    with open(filename, 'w') as f:
-        f.write('\\resizebox{\\linewidth}{!}{ \n')
-        f.write('\\begin{tabular} {lcccc||cccc||cccc||cccc||cccc||cccc}\n')
-        f.write('\\toprule\n')
-        f.write('& \\multicolumn{4}{c}{\\textbf{Kernel SHAP}} & \\multicolumn{4}{c}{\\textbf{Kernel SHAP Paired}} & \\multicolumn{4}{c}{\\textbf{Optimized Kernel SHAP}} & \\multicolumn{4}{c}{\\textbf{Leverage SHAP}} & \\multicolumn{4}{c}{\\textbf{Leverage SHAP Paired}} \\\\ \n')
-        cols = ['Mean', '1st', '2nd', '3rd']
-        colnames = ' & '.join(['\\textbf{' + col + '}' for col in cols])
-        f.write(f'\\textbf{{Approach}} & {colnames} & {colnames} & {colnames} & {colnames} & {colnames} \\\\ \\midrule \n')
-        for row in table:
-            print_row = [row[0]]
-            for i in range(1, len(row)):
-                color = ''
-                if include_color:
-                    vals = [row[j] for j in range(1, len(row))]
-                    if row[i] == min(vals):
-                        color = '\\cellcolor{gold!60}'
-                    elif row[i] == max(vals):
-                        color = '\\cellcolor{silver!60}'
-                val = "{:.2e}".format(row[i])
-                print_row.append(f'{color}{val}')
-            to_print = ' & '.join(print_row) + r'\\'
-            f.write(to_print + '\n')
-        f.write('\\bottomrule\n')
-        f.write('\\end{tabular}}')
-
 def error_ratio_table(results, multipliers, filename, numerator='Leverage SHAP', denominator='Optimized Kernel SHAP'):
     # NEW (not in 0de0a80): reproduces overleaf_paper's Table \ref{tab:error2kshap}
     # (Appendix "Error Relative to Optimized Kernel SHAP"): one row per

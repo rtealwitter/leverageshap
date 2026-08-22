@@ -28,7 +28,6 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
     num_rows = 1 if num_datasets <= 4 else 2
     dims = (num_rows, num_datasets // num_rows + num_datasets % num_rows)
     fig, axs = plt.subplots(*dims, figsize=(num_datasets /num_rows * 2.5, 1.87 * num_rows))
-    ratios = []
     for i, (dataset, results_by_dataset) in enumerate(results.items()):
         n = get_dataset_size(dataset)
         if num_datasets > 4:
@@ -36,7 +35,6 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
         else:
             ax = axs[i] if num_datasets > 1 else axs
 
-        to_multiply = {}
         for estimator_name, results_by_estimator in results_by_dataset.items():
             if estimator_name not in include_estimators: continue
             
@@ -44,10 +42,6 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
             x_values = sorted(x_values)
             y_mean = np.array([np.mean(results_by_estimator[x]) for x in x_values])
             y_median = np.array([np.median(results_by_estimator[x]) for x in x_values])
-            if y_name == 'shap_error' and x_name == 'sample_size' and 'main' in filename:
-                #print(f'{dataset} {estimator_name} {y_name} {x_name} {x_values} {y_median}')
-                to_multiply[estimator_name] = y_mean
-            
             y_upper = np.array([np.percentile(results_by_estimator[x], 75) for x in x_values])
             y_lower = np.array([np.percentile(results_by_estimator[x], 25) for x in x_values])
             if plot_mean:
@@ -55,13 +49,6 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
             else:
                 ax.plot(x_values, y_median, label=estimator_name, linestyle=linestyles_lookup[estimator_name], color=cbcolors_lookup[estimator_name])
                 ax.fill_between(x_values, y_lower, y_upper, alpha=0.2, color=cbcolors_lookup[estimator_name])
-        if False:#len(to_multiply) > 0: 
-            print(dataset)
-            ratio = (to_multiply['Leverage SHAP'] / to_multiply['Optimized Kernel SHAP'])
-            for val in ratio:
-                if not np.isclose(val, 1):
-                    ratios.append(val)
-
         if '_' in dataset:
             dataset, _ = dataset.split('_')
         ax.set_title(rf'{dataset} $(n = {n})$')
@@ -75,9 +62,6 @@ def plot_with_subplots(results, x_name, y_name, filename=None, log_x=True, log_y
             ax.set_xlabel(name_lookup[x_name])
         if i % 4 == 0:
             ax.set_ylabel(name_lookup[y_name])
-    if len(ratios) > 0:
-        print(f'Ratio mean: {np.mean(ratios)}') 
-
     plt.tight_layout()
     num_labels = len(plt.legend().get_texts())
     num_legend_cols = num_labels +1 if num_labels <= 4 else num_labels // 2
