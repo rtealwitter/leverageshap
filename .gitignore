@@ -3,3 +3,6 @@ __pycache__
 overleaf_paper/
 run_logs/
 .venv/
+*.egg-info/
+build/
+dist/

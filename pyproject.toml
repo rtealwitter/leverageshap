@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leverageshap"
+version = "0.1.0"
+description = "Leverage SHAP: provably accurate Shapley value estimation via leverage score sampling"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "R. Teal Witter", email = "r.teal.witter@gmail.com" },
+    { name = "Christopher Musco" },
+]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "shap",
+    "xgboost<=2.0.3",
+    "matplotlib",
+    "scienceplots",
+    "tabulate",
+    "networkx",
+    "tqdm",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/rtealwitter/leverageshap"
+Paper = "https://arxiv.org/abs/2410.01917"
+
+[tool.setuptools.packages.find]
+include = ["leverageshap*"]
