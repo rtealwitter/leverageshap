@@ -1,2 +1,5 @@
 __pycache__
 .DS_Store
+overleaf_paper/
+run_logs/
+.venv/

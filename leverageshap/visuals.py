@@ -17,7 +17,7 @@ name_lookup = {
     'weighted_error': r'Error in Objective',# $\left( \frac{\| {A} \tilde{{\phi}} - {b} \|_2^2}{\| {A} {\phi} - {b} \|_2^2} \right)$',
     'sample_size': r'Sample Size $(m)$',
     'noise': r'Standard Deviation of Noise $(\sigma)$',
-    'gamma': r'$\gamma$',# $\left( \frac{\| {b} \|_2^2}{\| {A} {\phi} \|_2^2} \right)$',
+    'gamma': r'$\gamma$',# $\left( \frac{\| {A}{\phi} - {b} \|_2^2}{\| {A} {\phi} \|_2^2} \right)$',
     'alpha' : r'$\alpha$',
 }
 

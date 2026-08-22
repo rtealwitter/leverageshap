@@ -21,9 +21,11 @@ def load_dataset(dataset_name):
 def load_input(X, seed=None):
     if seed is not None:
         np.random.seed(seed)
-    baseline = X.mean().values.reshape(1, -1)
+    baseline = np.array(X.mean().values, dtype='float64').reshape(1, -1)
     explicand_idx = np.random.choice(X.shape[0])
-    explicand = X.iloc[explicand_idx].values.reshape(1, -1)
+    # Copy as float64: on mixed-dtype frames `.values` can be a read-only view
+    # under recent pandas, which made the in-place edit below crash (NHANES).
+    explicand = np.array(X.iloc[explicand_idx].values, dtype='float64').reshape(1, -1)
     for i in range(explicand.shape[1]):
         while baseline[0, i] == explicand[0, i]:
             explicand_idx = np.random.choice(X.shape[0])

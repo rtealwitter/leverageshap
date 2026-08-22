@@ -18,7 +18,10 @@ main_estimators = ['Permutation SHAP', 'Kernel SHAP', 'Leverage SHAP']
 
 datasets = small_n + big_n
 
-if False:
+import sys
+# Regenerate output/*.csv only when asked (`python run.py --benchmark`);
+# by default this script re-plots and re-tabulates the stored results.
+if '--benchmark' in sys.argv:
     main_estimators = {
         name: ls.estimators[name] for name in main_estimators
     }

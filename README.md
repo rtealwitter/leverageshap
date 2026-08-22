@@ -8,9 +8,9 @@ Like Kernel SHAP, Leverage SHAP approximates Shapley values by solving a weighte
 
 1. Leverage SHAP uses **leverage score sampling** to select which model evaluations to include in the regression, while Kernel SHAP samples each coalition with respect to its weight in the regression problem.
 
-2. Leverage SHAP uses a **projected regression** solution to compute Shapley value estimates, while Kernel SHAP uses a standard weighted least squares solution where the "infinite weight" on the empty and full coalitions is approximated by assigning them a very large finite weight.
+2. Leverage SHAP uses a **projected regression** solution to compute Shapley value estimates: the efficiency constraint is removed exactly by projecting off the all-ones direction, leaving an unconstrained least squares problem. The official Kernel SHAP implementation instead eliminates one variable using the constraint and solves the resulting weighted least squares problem.
 
-3. Leverage SHAP directly **samples coalitions without replacement**, while Kernel SHAP uses rejection sampling  and up-weights the coalitions that happen to be selected multiple times.
+3. Leverage SHAP directly **samples coalitions without replacement** using a Bernoulli sampler. The official Kernel SHAP implementation (what the paper calls *Optimized Kernel SHAP*) enumerates every coalition of the smallest and largest sizes when the budget allows, and falls back to sampling with replacement for the remaining sizes, up-weighting coalitions that are drawn multiple times.
 
 ![Performance of Leverage SHAP](images/main_sample_size-shap_error.png)
 
@@ -37,11 +37,9 @@ print("Estimated SHAP values from Leverage SHAP: ", estimated_shap_values)
 
 ### Benchmarking
 
-This codebase only implements Leverage SHAP, and relies on the [SHAP](https://github.com/slundberg/shap) library for Tree SHAP, Kernel SHAP, and Permutation SHAP implementations.
+This codebase implements Leverage SHAP and a benchmarking harness (`leverageshap/benchmark.py`, driven by `run.py --benchmark`) that compares it against the Kernel SHAP and Permutation SHAP implementations in the [SHAP](https://github.com/slundberg/shap) library, with Tree SHAP as ground truth. The estimator labeled "Kernel SHAP" in the output is `shap.KernelExplainer` with paired sampling and exhaustive enumeration of small coalition sizes, i.e. *Optimized Kernel SHAP* in the paper's terminology. Permutation SHAP is given the same budget of `m` model evaluations through `max_evals`; budgets below `2n+1` are raised to `2n+1` with a printed warning.
 
-In order to benchmark Leverage SHAP against other estimators, we recommend using the [shapiq](https://github.com/mmschlk/shapiq) library.
-
-Important Note: The implementation of Kernel SHAP in shapiq uses elements of the Leverage SHAP approach (the projected regression solution and the sampling method), so the benchmarking results may not reflect the performance of the official Kernel SHAP algorithm in [SHAP](https://github.com/slundberg/shap).
+Leverage SHAP is also available in the [shapiq](https://github.com/mmschlk/shapiq) library. Note that shapiq's Kernel SHAP shares the projected regression solution and sampler with Leverage SHAP, so results from shapiq do not reflect the official Kernel SHAP algorithm.
 
 ### Credit
 

@@ -7,10 +7,12 @@ from ..utils import Game
 
 
 class LeverageSHAP:
-    def __init__(self, n, game, paired_sampling=True):
+    def __init__(self, n, game, paired_sampling=True, random_state=None):
         self.game = game
         self.n = n
         self.paired_sampling = paired_sampling
+        # None -> fresh randomness on every call (so repeated runs are independent).
+        self.random_state = random_state
     
     def shap_values(self, num_samples):
         # Sample
@@ -20,13 +22,16 @@ class LeverageSHAP:
         # b = y - Z1 (v1 - v0) / n    
         # (A^T S^T S A)^-1 A^T S^T S b + (v1 - v0) / n
         # (P^T Z^T S^T S Z P)^-1 P^T Z^T S^T S b + (v1 - v0) / n
+        # Algorithm 1 assumes m >= n; with fewer samples the projected system
+        # is rank deficient and lstsq returns the min-norm solution.  We keep a
+        # hard floor of 6 so the paired sampler always has rows to work with.
         if num_samples < 6:
-            print('Number of samples too small, setting to 6')
+            print(f'Warning: num_samples={num_samples} < 6 for Leverage SHAP (n={self.n}); using 6 samples instead.')
             num_samples = 6
 
         sampling_weights = np.ones(self.n-1)
 
-        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling, random_state=42)
+        sampler = CoalitionSampler(n_players=self.n, sampling_weights=sampling_weights, pairing_trick=self.paired_sampling, random_state=self.random_state)
         sampler.sample(num_samples)
         coalition_matrix = sampler._sampled_coalitions_matrix
         coalition_sizes = np.sum(coalition_matrix, axis=1)
@@ -41,7 +46,9 @@ class LeverageSHAP:
         values = self.game.value(coalition_matrix)
         
         v0, v1 = self.game.edge_cases()
-        values_adjusted = values - (v1 - v0) * coalition_sizes/ self.n
+        # b = (v(z) - v0) - (v1 - v0) |z| / n.  The -v0 term cancels under paired
+        # sampling (z + z_bar = 1 is annihilated by P) but matters without it.
+        values_adjusted = (values - v0) - (v1 - v0) * coalition_sizes / self.n
         regression_weights = 1 / (binom(self.n, coalition_sizes) * coalition_sizes * (self.n - coalition_sizes))
         kernel_weights = regression_weights / sampling_probs
 
@@ -50,20 +57,15 @@ class LeverageSHAP:
         Atb = P @ coalition_matrix.T @ np.diag(kernel_weights) @ values_adjusted
         AtA = P @ coalition_matrix.T @ np.diag(kernel_weights) @ coalition_matrix @ P
 
-        if np.linalg.cond(AtA) > 1 / np.finfo(AtA.dtype).eps and num_samples <= 3*self.n:
-            sqrt_alpha = 1e-3
-            AtA = AtA + sqrt_alpha * np.eye(AtA.shape[0])
-
-            yellow_start="\033[33m"
-            yellow_end="\033[0m"
-            print(f'{yellow_start}Warning:{yellow_end} Singular matrix in Leverage SHAP with num_samples={num_samples} and num_players={self.n}, adding ridge regularization with alpha={sqrt_alpha**2}.')
-
+        # AtA is always singular (P has rank n-1); lstsq returns the min-norm
+        # solution, which lies in the range of P and is exactly Algorithm 1's
+        # constrained least-squares solution.  No ridge term is needed.
         AtA_inv_Atb = np.linalg.lstsq(AtA, Atb, rcond=None)[0]
         
         return AtA_inv_Atb + (v1 - v0) / self.n
 
-def leverage_shap(baseline, explicand, model, num_samples):
+def leverage_shap(baseline, explicand, model, num_samples, random_state=None):
     game = Game(model, baseline, explicand)
     n = baseline.shape[1]
-    estimator = LeverageSHAP(n, game, paired_sampling=True)
+    estimator = LeverageSHAP(n, game, paired_sampling=True, random_state=random_state)
     return estimator.shap_values(num_samples)

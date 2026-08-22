@@ -40,8 +40,8 @@ def run_shap_experiment(dataset, size_mults, estimator_names, seed=42, num_reps=
                 # Run the mechanism
                 estimated_shap = estimator(baseline, explicand, model, sample_size).flatten()
 
-                # Calculate standard MSE
-                mse = np.mean((true_shap - estimated_shap)**2)
+                # Same metric as benchmark.py / the paper: ||phi_hat - phi||^2 / ||phi||^2
+                mse = np.sum((true_shap - estimated_shap)**2) / np.sum(true_shap**2)
                 
                 # Store the result
                 performance[estimator_name][sample_size].append(mse)

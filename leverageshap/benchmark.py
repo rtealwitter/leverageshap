@@ -8,13 +8,14 @@ import xgboost as xgb
 import os
 from tqdm import tqdm
 import scipy
+import ast
 
 # Every line of output files contains a dictionary with the following keys
 # 'sample_size': number of samples used to estimate SHAP values
 # 'noise': standard deviation of noise added to the labels
 # 'shap_error': mean squared error between estimated and true SHAP values
 # 'weighted_error' (optional): ||Ax- b||^2 / ||Ax* - b||^2 where x* is the true SHAP values and x is the estimated SHAP values
-# 'gamma' (optional): ||b||^2 / ||Ax||^2 where x is the estimated SHAP values
+# 'gamma' (optional, small n only): ||A x* - b||^2 / ||A x*||^2 where x* is the true SHAP values (Corollary 4.2 in the paper)
 
 def build_full_linear_system(baseline, explicand, model):
     n = baseline.shape[1]
@@ -48,7 +49,14 @@ def read_file(dataset, estimator, x_name, y_name, constraints={}):
     results = {}
     with open(filename, 'r') as f:
         for line in f:
-            dict = eval(line)
+            line = line.strip()
+            if not line: continue
+            try:
+                dict = ast.literal_eval(line)
+            except (ValueError, SyntaxError):
+                # torn final line from an interrupted job
+                print(f'Skipping unparseable line in {filename}')
+                continue
             add = True
             for key, value in constraints.items():
                 if dict[key] != value:
@@ -197,8 +205,8 @@ def run_one_iteration(X, seed, dataset, model, sample_size, noise_std, num_runs,
         noised_model = NoisyModel(model, noise_std)
         try:
             shap_values = estimator(baseline, explicand, noised_model, sample_size).flatten()
-        except ValueError:
-            print(f'Error in estimator {estimator_name} for dataset {dataset} with n={n}, sample_size={sample_size}, noise={noise_std}')
+        except ValueError as e:
+            print(f'SKIPPED (no row written): estimator {estimator_name}, dataset {dataset}, n={n}, sample_size={sample_size}, noise={noise_std}: {e}')
             continue
 
         filename = f'output/{dataset}_{estimator_name}.csv'
@@ -220,7 +228,9 @@ def run_one_iteration(X, seed, dataset, model, sample_size, noise_std, num_runs,
                 if small_setup == {}:
                     small_setup = run_small_setup(baseline, explicand, model, true_shap_values)
                 weighted_error = np.sum((small_setup['A'] @ shap_values - small_setup['b'])**2)
-                dict['weighted_error'] = weighted_error / small_setup['best_weighted_error'] 
+                dict['weighted_error'] = weighted_error / small_setup['best_weighted_error']
+                dict['gamma'] = small_setup['gamma']
+                dict['normalized_gamma'] = small_setup['normalized_gamma']
             f.write(str(dict) + '\n')
 
 
