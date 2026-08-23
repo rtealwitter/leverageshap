@@ -135,7 +135,20 @@ class RegressionEstimator:
             if expected_samples(C) < m: L = C
             else: R = C
             C = (L + R) / 2
-        self.C = round(C)
+        # Bug fix (2026-08-23): C is a continuous oversampling constant --
+        # nothing downstream (sample_without_replacement's `prob = min(1,
+        # 2*self.C*... )` expressions) requires it to be an integer. Snapping
+        # it via round() perturbed the realized game-evaluation budget by
+        # +13% to +20% at m = 5n (where the exact C sits right on a
+        # rounding boundary, C_exact -> mult/2 = 2.5 as n grows -- see
+        # run_logs/rerun/ROUNDING_FIX_REPORT.md) and biased the "Leverage
+        # SHAP (Binomial)" ablation's error low relative to its nominal
+        # budget. Keeping C as a float removes the bias (<2% at every
+        # multiplier); it does not affect any other estimator (`self.C` is
+        # only read here and in sample_without_replacement, which is only
+        # reached when bernoulli_sampling=True, i.e. only by
+        # leverage_shap_binomial).
+        self.C = C
 
     def sample_without_replacement(self):
         self.find_constant_for_bernoulli()

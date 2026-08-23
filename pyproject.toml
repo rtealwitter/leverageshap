@@ -36,5 +36,8 @@ classifiers = [
 Homepage = "https://github.com/rtealwitter/leverageshap"
 Paper = "https://arxiv.org/abs/2410.01917"
 
+[project.optional-dependencies]
+dev = ["pytest"]
+
 [tool.setuptools.packages.find]
 include = ["leverageshap*"]
