@@ -14,9 +14,9 @@ linestyles_lookup = {name: linestyles[i % len(linestyles)] for i, name in enumer
 cbcolors_lookup = {name: cbcolors[i % len(cbcolors)] for i, name in enumerate(estimators.keys())}
 
 name_lookup = {
-    'shap_error': r'Error in $\ell_2$-norm', #r'Shapley Error $\left(\| \tilde{{\phi}} - {\phi}\|_2^2\right)$',
+    'shap_error': r'Relative squared $\ell_2$ error', #r'Shapley Error $\left(\| \tilde{{\phi}} - {\phi}\|_2^2\right)$',
     'weighted_error': r'Error in Objective',# $\left( \frac{\| {A} \tilde{{\phi}} - {b} \|_2^2}{\| {A} {\phi} - {b} \|_2^2} \right)$',
-    'sample_size': r'Sample Size $(m)$',
+    'sample_size': r'Sample budget $(m)$',
     'noise': r'Standard Deviation of Noise $(\sigma)$',
     'gamma': r'$\gamma$',# $\left( \frac{\| {A}{\phi} - {b} \|_2^2}{\| {A} {\phi} \|_2^2} \right)$',
     'alpha' : r'$\alpha$',

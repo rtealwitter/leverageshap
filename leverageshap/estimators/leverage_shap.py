@@ -54,8 +54,11 @@ class LeverageSHAP:
 
         P = np.eye(self.n) - 1/self.n * np.ones((self.n, self.n))
 
-        Atb = P @ coalition_matrix.T @ np.diag(kernel_weights) @ values_adjusted
-        AtA = P @ coalition_matrix.T @ np.diag(kernel_weights) @ coalition_matrix @ P
+        # Scale rows directly: materializing an m-by-m diagonal matrix adds
+        # quadratic storage and work in the sample budget.
+        weighted_transpose = coalition_matrix.T * kernel_weights
+        Atb = P @ weighted_transpose @ values_adjusted
+        AtA = P @ weighted_transpose @ coalition_matrix @ P
 
         # AtA is always singular (P has rank n-1); lstsq returns the min-norm
         # solution, which lies in the range of P and is exactly Algorithm 1's

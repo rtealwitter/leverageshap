@@ -22,8 +22,9 @@
 # lets the factory functions below accept the same `random_state` keyword as
 # `leverage_shap()` / `leverage_shap_unpaired()` in leverage_shap.py.
 # `random_state=None` (the default) reproduces the original behavior exactly
-# (fresh OS entropy on every call). No other line in the class or its helpers
-# differs from the 0de0a80 source.
+# (fresh OS entropy on every call). Subsequent correctness fixes retain a
+# continuous oversampling constant and draw independent middle-layer pairs
+# directly, as required by the paper's Bernoulli-block analysis.
 
 import numpy as np
 import scipy
@@ -129,7 +130,7 @@ class RegressionEstimator:
             #print(f'C: {C}')
             return np.sum(expected)
         # Efficiently find C with binary search
-        L = 1
+        L = 0
         R = scipy.special.binom(self.n, self.n // 2) * self.n ** 2
         while round(expected_samples(C)) != m:
             if expected_samples(C) < m: L = C
@@ -156,14 +157,18 @@ class RegressionEstimator:
         for s in range(1, self.n):
             # Sample from Binomial distribution with (n choose s) trials and probability min(1, C*sample_weight(s) / (n choose s))
             prob = min(1, 2*self.C * self.sample_weight(s) / scipy.special.binom(self.n, s))
+            is_middle = self.paired_sampling and 2 * s == self.n
+            # Each middle-layer pair has exactly one set containing n-1.
+            # Draw independent pairs, rather than halving a draw over sets.
+            num_trials = math.comb(self.n - 1, s - 1) if is_middle else math.comb(self.n, s)
             try:
-                m_s = self.gen.binomial(int(scipy.special.binom(self.n, s)), prob)
+                m_s = self.gen.binomial(num_trials, prob)
             except OverflowError: # If the number of samples is too large, assume the number of samples is the expected number
-                m_s = int(prob * scipy.special.binom(self.n, s))
+                m_s = int(prob * num_trials)
             if self.paired_sampling:
                 if s == self.n // 2: # Already sampled all larger sets with the complement
                     if self.n % 2 == 0: # Special handling for middle set size if n is even
-                        m_s_all.append(m_s // 2)
+                        m_s_all.append(m_s)
                     else: m_s_all.append(m_s)
                     break
             m_s_all.append(m_s)
@@ -209,8 +214,9 @@ class RegressionEstimator:
         # Projection matrix
         P = np.eye(self.n) - 1/self.n * np.ones((self.n, self.n))
 
-        PZSSb = P @ SZ_binary.T @ np.diag(self.kernel_weights) @ Sb
-        PZSSZP = P @ SZ_binary.T @ np.diag(self.kernel_weights) @ SZ_binary @ P
+        weighted_transpose = SZ_binary.T * np.asarray(self.kernel_weights)
+        PZSSb = P @ weighted_transpose @ Sb
+        PZSSZP = P @ weighted_transpose @ SZ_binary @ P
         PZSSZP_inv_PZSSb = np.linalg.lstsq(PZSSZP, PZSSb, rcond=None)[0]
 
         self.phi = PZSSZP_inv_PZSSb + (v1 - v0) / self.n

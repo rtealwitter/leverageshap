@@ -1,7 +1,7 @@
 import numpy as np
 import math
 from scipy.special import comb as binom
-from typing import Sequence, Tuple, TypeVar
+from typing import Optional, Sequence, Tuple, TypeVar
 
 class CoalitionSampler:
     '''
@@ -45,7 +45,7 @@ class CoalitionSampler:
         sampling_weights: np.ndarray,
         *,
         pairing_trick: bool = True,
-        random_state: int | None = None,
+        random_state: Optional[int] = None,
         sample_with_replacement: bool = False,
     ) -> None:
         self._n_players = n_players

@@ -88,7 +88,6 @@ def one_big_table(results, filename, error_type):
     for i, dataset in enumerate(results):
         for j, method in enumerate(results[dataset]):
             values = np.array(results[dataset][method][list(results[dataset][method].keys())[0]])
-            if error_type == 'weighted_error': values = 1 - values
             mean = np.mean(values)
             median = np.median(values)
             upper = np.percentile(values, 75)

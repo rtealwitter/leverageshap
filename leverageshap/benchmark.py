@@ -370,7 +370,9 @@ def build_gamma_labels(n, alpha):
 
     # True SHAP values.
     # Solve Ax = b
-    true_shap_values = np.linalg.lstsq(A, b, rcond=None)[0]
+    # The minimum-norm regression solution lies in 1^perp. Restore the
+    # efficiency component to obtain the Shapley values (Lemma 3.1).
+    true_shap_values = np.linalg.lstsq(A, b, rcond=None)[0] + (v1 - v0) / n
     best_weighted_error = np.sum((A @ true_shap_values - b)**2)
 
     gamma = np.sum((A @ true_shap_values - b)**2) / np.sum((A @ true_shap_values)**2)

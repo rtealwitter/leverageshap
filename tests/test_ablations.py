@@ -54,3 +54,28 @@ def test_C_is_not_rounded_to_an_integer():
     )
     estimator.find_constant_for_bernoulli()
     assert estimator.C != round(estimator.C)
+
+
+def test_middle_layer_draws_pairs_directly():
+    """Independent middle-layer pairs require half as many Binomial trials."""
+    estimator = RegressionEstimator(None, np.zeros((1, 6)), np.ones((1, 6)),
+        30, paired_sampling=True, leverage_sampling=True, bernoulli_sampling=True)
+    calls = []
+
+    class RecordingGenerator:
+        def binomial(self, trials, probability):
+            calls.append((trials, probability))
+            return 0
+        def choice(self, population, size, replace=False):
+            return np.array([], dtype=int)
+
+    estimator.gen = RecordingGenerator()
+    estimator.sample_without_replacement()
+    assert [trials for trials, _ in calls] == [6, 15, 10]
+
+
+def test_small_binomial_budget_is_feasible():
+    estimator = RegressionEstimator(None, np.zeros((1, 10)), np.ones((1, 10)),
+        10, paired_sampling=True, leverage_sampling=True, bernoulli_sampling=True)
+    estimator.find_constant_for_bernoulli()
+    assert estimator.C < 1
